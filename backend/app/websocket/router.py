@@ -8,15 +8,23 @@ router = APIRouter(prefix='/ws', tags=['websocket'])
 async def websocket_endpoint(websocket: WebSocket, room_code: str):
     # 1. ALWAYS accept the handshake first!
     await websocket.accept()
+        
     
-    await manager.add_connection(websocket=websocket, room_code=room_code)
-    
-    await manager.broadcast_to_room(room_code=room_code, message={"type": "Announcement", "message": "A new user joined this room"})
     
     try:
         while True:
             data = await websocket.receive_json()
-            await manager.broadcast_to_room(room_code=room_code, message=data)
+            print(data)
+            if data["type"] == "JOIN":
+                unique_user_id = data["message"]["unique_user_id"]
+                manager.add_connection(websocket=websocket, room_code=room_code, unique_user_id=unique_user_id)
+                await manager.broadcast_to_room(room_code=room_code, message={"type": "Announcement", "message": f"A new [user]:{unique_user_id} joined this room"})
+            elif data["type"] == "DRAW":
+                await manager.broadcast_to_room(room_code=room_code, message=data)
+            elif data["type"] == "DISCONNECT":
+                # Remove player fromm room players list
+                print(data)
+            
     except WebSocketDisconnect as e:
         # disconnecting client:
         await manager.remove_connection(room_code=room_code, websocket=websocket)

@@ -1,20 +1,27 @@
 "use client";
 
 import { SOCKET_BASE_URL } from "@/lib/constants";
+import { getSessionStorage } from "@/lib/util";
 import {
     createContext,
     useContext,
     useEffect,
     useRef,
+    useState,
 } from "react";
 
 type SocketContextType = {
     socket: WebSocket | null;
-};
+    sendMessage: (message: Message) => void,
+    isReady: boolean
 
-const SocketContext = createContext<SocketContextType>({
-    socket: null,
-});
+};
+type MessageType = "DRAW"  | "JOIN" |  "TEST"
+type Message = {
+    type: MessageType,
+    message: Record<string, unknown>
+}
+const SocketContext = createContext<SocketContextType | null>(null);
 
 export const SocketProvider = ({
     children,
@@ -24,28 +31,51 @@ export const SocketProvider = ({
     roomCode: string;
 }) => {
     const socketRef = useRef<WebSocket | null>(null);
+    const [socket, setSocket] = useState<WebSocket | null>(null)
+    const [isSocketReady, setIsSocketReady] = useState(false)
+    const sendMessage = (message: Message) => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        socket.send(JSON.stringify(message))
+    }
+
 
     useEffect(() => {
-        const socket = new WebSocket(
+        const unique_user_id = getSessionStorage<string>("UUID")
+        const ws = new WebSocket(
             `${SOCKET_BASE_URL}/${roomCode}`
         );
 
-        socketRef.current = socket;
+        setSocket(ws);
 
-        socket.onopen = () => {
+        ws.onopen = () => {
             console.log("🟢 WebSocket connected");
+            setIsSocketReady(true)
+            ws.send(JSON.stringify({
+                type: "TEST",
+                message: "Hello from client"
+            }));
+
+            if (unique_user_id) {
+                console.log({ type: "JOIN", message: { unique_user_id } })
+                ws.send(JSON.stringify({ type: "JOIN", message: { unique_user_id } }))
+            }
         };
 
-        socket.onclose = () => {
+        ws.onmessage = (event) => {
+            console.log(event)
+        };
+        ws.onclose = () => {
+            setIsSocketReady(false)
             console.log("🔴 WebSocket disconnected");
         };
 
-        socket.onerror = (error) => {
+        ws.onerror = (error) => {
+            setIsSocketReady(false)
             console.error("❌ WebSocket error:", error);
         };
 
         return () => {
-            socket.close();
+            ws.close();
             socketRef.current = null;
         };
     }, [roomCode]);
@@ -53,7 +83,9 @@ export const SocketProvider = ({
     return (
         <SocketContext.Provider
             value={{
-                socket: socketRef.current,
+                socket,
+                sendMessage: sendMessage,
+                isReady: isSocketReady
             }}
         >
             {children}

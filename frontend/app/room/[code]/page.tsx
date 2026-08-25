@@ -31,6 +31,7 @@ const Page = async ({ params }: Props) => {
     <SocketProvider roomCode={roomData.code}>
       <RoomRenderer roomData={roomData} />
     </SocketProvider>
+
   )
 }
 

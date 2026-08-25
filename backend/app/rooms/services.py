@@ -87,3 +87,14 @@ async def getRoom(room_code: str):
     "max_players": room["max_players"],
     "players": room["players"]
     }   
+    
+async def removePlayerFromRoom(room_code: str, player_unique_id: str):
+    result = await db.rooms.update_one({"code": room_code},{
+        "$pull":{
+            "players": {
+                "uuid": player_unique_id
+            }
+        }
+    })
+    
+    return result
