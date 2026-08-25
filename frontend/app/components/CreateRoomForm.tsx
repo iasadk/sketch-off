@@ -1,6 +1,6 @@
 'use client'
 import { CreateFormType, CreateFormValidationSchema } from '@/lib/types'
-import { cn } from '@/lib/util'
+import { cn, getUUID, setSessionStorage } from '@/lib/util'
 import { parseApiError } from '@/rest-api/error'
 import { createRoom } from '@/rest-api/room'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,6 +17,7 @@ const CreateRoomForm = ({ onChange }: Props) => {
         register,
         handleSubmit,
         formState: { errors },
+        reset
     } = useForm<CreateFormType>({
         resolver: zodResolver(CreateFormValidationSchema),
     });
@@ -24,9 +25,13 @@ const CreateRoomForm = ({ onChange }: Props) => {
     const errorToast = (msg: string) => toast.error(msg);
     const submitForm = async (data: CreateFormType) => {
         try {
-            const {data: res} = await createRoom(data);
-            // console.log(res)
+            const unique_player_id = getUUID()
+            const {data: res} = await createRoom({...data, unique_player_id });
+            reset()
+            setSessionStorage("ROOM_CODE", res.code);
+            setSessionStorage("UUID", unique_player_id);
             window.location.href = `/room/${encodeURI(res.code)}`;
+
         } catch (error: any) {
             if(axios.isAxiosError(error)){
                 errorToast(parseApiError(error))

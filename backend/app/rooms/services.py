@@ -9,7 +9,7 @@ async def create_room(room_data: RoomCreateSchema):
         "name": room_data.room_name,
         "code": ROOM_CODE,
         "max_players": room_data.max_players,
-        "players": [{"name": room_data.player_name, "score":  0}]
+        "players": [{"uuid": room_data.unique_player_id, "name": room_data.player_name, "score":  0}]
     }
     # saving to db:
     await db.rooms.insert_one(data)
@@ -28,20 +28,50 @@ async def join_room_service(payload: JoinRoomSchema):
     
     if room is None:
         raise RoomNotFoundException(payload.code)
-    elif len(room["players"]) >= room["max_players"]: # TODO: Need to update this logic to handle concurrency issue and atomicity of the operation. Currently this check is not atomic and can lead to race conditions.
-        raise RoomFullError()
     
-    # Add the player to the room's players list
-    await db.rooms.update_one({ "_id": room["_id"] }, {
-        "$push": {
-            "players": {
-                "name": payload.player_name,
-                "score": 0
+    result = await db.rooms.update_one(
+        {
+            "_id": room["_id"],
+            "$expr": {
+                "$lt": [
+                    {"$size": "$players"},
+                    "$max_players"
+                ]
+            }
+        },
+        {
+            "$push": {
+                "players": {
+                    "uuid": payload.unique_player_id,
+                    "name": payload.player_name,
+                    "score": 0
+                }
             }
         }
-    })
+    )
 
+    if result.modified_count == 0:
+        raise RoomFullError()
+    
+    updatedRoom = await db.rooms.find_one({"code": payload.code})
     return {
-        "status": "success",
-        "message": f"Player '{payload.player_name}' joined room '{payload.code}'"
-    }
+        "_id": str(updatedRoom["_id"]),
+        "name": updatedRoom["name"],
+        "code": updatedRoom["code"],
+        "max_players": updatedRoom["max_players"],
+        "players": updatedRoom["players"]
+    }   
+    
+
+async def getRoom(room_code: str):
+    room = await db.rooms.find_one({"code": room_code})
+    if room is None:
+        raise RoomNotFoundException(room_code=room_code)
+    
+    return {
+    "_id": str(room["_id"]),
+    "name": room["name"],
+    "code": room["code"],
+    "max_players": room["max_players"],
+    "players": room["players"]
+    }   

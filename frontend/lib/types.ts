@@ -16,15 +16,15 @@ export type Stroke = {
 
 
 export const CreateFormValidationSchema = z.object({
-    room_name: z.string().optional(),
-    // .min(3, { error: 'Must be of min length 3' }).max(20, { error: 'Must be of max length 20', }),
-    player_name: z.string().optional()
-    // .min(3, { error: 'Must be of min length 3' }).max(20, { error: 'Must be of max length 20' }),
+    room_name: z.string().min(3, { error: 'Must be of min length 3' }).max(20, { error: 'Must be of max length 20', }),
+    player_name: z.string().min(3, { error: 'Must be of min length 3' }).max(20, { error: 'Must be of max length 20' }),
 })
 
 export type CreateFormType = z.infer<typeof CreateFormValidationSchema>
 
-
+export type CreateRoomPayload = CreateFormType & {
+  unique_player_id: string;
+};
 export const JoinFormValidationSchema = z.object({
     room_code: z.string().min(6, { error: 'Must be of min length 6' }).max(6, { error: 'Must be of max length 6' }),
     player_name: z.string().min(3, { error: 'Must be of min length 3' }).max(20, { error: 'Must be of max length 20' }),
@@ -33,6 +33,7 @@ export const JoinFormValidationSchema = z.object({
 export type JoinFormType = z.infer<typeof JoinFormValidationSchema>
 
 export type Player = { 
+    uuid: string,
     score: number,
     name: string
 }
@@ -50,3 +51,5 @@ export interface Response<T>{
     code: number;
     message: string
 }
+
+export type validSessionStorageKeys = "ROOM_CODE" | "UUID"

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 from app.rooms.schemas import RoomCreateSchema, JoinRoomSchema
-from app.rooms.services import create_room, join_room_service
+from app.rooms.services import create_room, join_room_service, getRoom
 from core.schemas import SuccessResponse
 router = APIRouter(
     prefix="/room",
@@ -24,3 +24,9 @@ async def join_room(join_room_data: JoinRoomSchema):
     """
     res = await join_room_service(join_room_data)
     return SuccessResponse(message="Room Joined", data=res)
+
+
+@router.get("/info/{room_code}", status_code=200, response_model=SuccessResponse)
+async def getRoomInfo(room_code: str):
+    res = await getRoom(room_code)
+    return SuccessResponse(message="Data Found", data=res)

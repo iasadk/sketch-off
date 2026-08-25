@@ -5,15 +5,22 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 
 type Props = {
-    onChange: () => void
+    onChange?: () => void,
+    hideBottomLabel?: boolean,
+    room_code?: string,
+    disableCodeEdit?: boolean
 }
-const JoinRoomForm = ({ onChange }: Props) => {
+const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCodeEdit = false }: Props) => {
     const {
         register,
         handleSubmit,
         formState: { errors },
     } = useForm<JoinFormType>({
-        resolver: zodResolver(JoinFormValidationSchema)
+        resolver: zodResolver(JoinFormValidationSchema),
+        defaultValues:{
+            player_name:"",
+            room_code
+        }
     });
 
     const submitForm = (data: JoinFormType) => {
@@ -54,9 +61,10 @@ const JoinRoomForm = ({ onChange }: Props) => {
                 <input
                     id="room_code"
                     type="text"
+                    disabled={disableCodeEdit}
                     placeholder="X1ERT4"
                     {...register("room_code", { required: true, max: 6, min: 6 })}
-                    className={cn("w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none transition",
+                    className={cn("w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none transition disabled:opacity-85 disabled:cursor-not-allowed",
                         {
                             "border-red-500 placeholder:text-red-500 text-red-500": errors.room_code,
                             "focus:border-white/50 focus:bg-white/15 focus:ring-2 focus:ring-white/20": !errors.room_code,
@@ -72,9 +80,9 @@ const JoinRoomForm = ({ onChange }: Props) => {
             >
                 Join Room
             </button>
-            <div className='text-center'>
+            {!hideBottomLabel && <div className='text-center'>
                 <p className='text-slate-400'>Don't have a code ? <span className='underline hover:text-slate-700 cursor-pointer' onClick={onChange}>Create Room</span></p>
-            </div>
+            </div>}
         </form>
     )
 }

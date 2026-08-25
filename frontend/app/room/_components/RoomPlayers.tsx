@@ -1,7 +1,10 @@
 import React from 'react'
 import PlayerCard from './PlayerCard'
+import { Player } from '@/lib/types'
 
-type Props = {}
+type Props = {
+  players: Player[]
+}
 const Players = [
   {
     position: 1,
@@ -24,11 +27,11 @@ const Players = [
     points: 5
   },
 ]
-const RoomPlayers = (props: Props) => {
+const RoomPlayers = ({players}: Props) => {
   return (
     <div className='bg-white h-full w-full  text-center font-semibold rounded-sm'>
       {
-        Players.map((player, idx) => <PlayerCard name={player.name} points={player.points} position={player.position} key={idx}/>)
+        players.map((player, idx) => <PlayerCard name={player.name} points={player.score} position={idx + 1} key={idx + 1}/>)
       }
     </div>
   )
