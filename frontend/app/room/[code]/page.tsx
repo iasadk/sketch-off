@@ -2,6 +2,7 @@ import { getRoom } from "@/rest-api/room"
 import axios from "axios"
 import { notFound } from "next/navigation"
 import RoomRenderer from "../_components"
+import { SocketProvider } from "@/provider/websocket"
 
 type Props = {
   params: Promise<{
@@ -27,7 +28,9 @@ const Page = async ({ params }: Props) => {
     notFound();
   }
   return (
-    <RoomRenderer roomData={roomData}/>
+    <SocketProvider roomCode={roomData.code}>
+      <RoomRenderer roomData={roomData} />
+    </SocketProvider>
   )
 }
 

@@ -1,27 +1,45 @@
 'use client'
+import HomeLayout from '@/app/components/Home'
+import JoinRoomForm from '@/app/components/JoinRoomForm'
 import { CreateRoomResponse } from '@/lib/types'
+import { getSessionStorage } from '@/lib/util'
+import { useEffect, useState } from 'react'
 import Canvas from './canvas/Canvas'
 import LiveChat from './LiveChat'
 import RoomHeader from './RoomHeader'
 import RoomPlayers from './RoomPlayers'
-import { getSessionStorage } from '@/lib/util'
-import JoinRoomForm from '@/app/components/JoinRoomForm'
-import HomeLayout from '@/app/components/Home'
 
 type Props = {
     roomData: CreateRoomResponse
 }
 
 const RoomRenderer = ({ roomData }: Props) => {
-    const player_unique_id = getSessionStorage<string>("UUID") ?? "";
-    const playerInfo = roomData.players.find(player => player.uuid === player_unique_id);
+    const [playerUniqueId, setPlayerUniqueId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setPlayerUniqueId(getSessionStorage<string>("UUID"));
+    }, []);
+
+    if (playerUniqueId === null) {
+        return null;
+    }
+
+    const playerInfo = roomData.players.find(
+        player => player.uuid === playerUniqueId
+    );
+
     if (!playerInfo) {
-        // show join room ui
-        return <HomeLayout>
-            <div className='flex items-center justify-center '>
-                <JoinRoomForm hideBottomLabel={true} room_code={roomData.code} disableCodeEdit={true}/>
-            </div>
-        </HomeLayout>
+        return (
+            <HomeLayout>
+                <div className="flex items-center justify-center">
+                    <JoinRoomForm
+                        hideBottomLabel={true}
+                        room_code={roomData.code}
+                        disableCodeEdit={true}
+                    />
+                </div>
+            </HomeLayout>
+        );
     }
 
 

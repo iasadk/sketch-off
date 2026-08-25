@@ -15,4 +15,5 @@ export const COLORS = [
 
 export const STROKE_WIDTHS = [2, 5, 10] as const;
 
-export const API_BASE_URL = "http://localhost:8000" 
+export const API_BASE_URL = "http://localhost:8000";
+export const SOCKET_BASE_URL = "ws://localhost:8000/ws";
