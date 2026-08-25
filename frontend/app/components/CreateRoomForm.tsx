@@ -6,6 +6,7 @@ import { createRoom } from '@/rest-api/room'
 import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import { useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
 
 type Props = {
     onChange: () => void
@@ -20,14 +21,15 @@ const CreateRoomForm = ({ onChange }: Props) => {
         resolver: zodResolver(CreateFormValidationSchema),
     });
 
+    const errorToast = (msg: string) => toast.error(msg);
     const submitForm = async (data: CreateFormType) => {
         try {
-            const res = await createRoom(data);
-            console.log(res)
-            // window.location.href = `/room/${encodeURI(res.code)}`;
+            const {data: res} = await createRoom(data);
+            // console.log(res)
+            window.location.href = `/room/${encodeURI(res.code)}`;
         } catch (error: any) {
             if(axios.isAxiosError(error)){
-                console.log(parseApiError(error))
+                errorToast(parseApiError(error))
             }
         }
     }

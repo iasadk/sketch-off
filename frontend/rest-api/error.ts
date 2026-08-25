@@ -1,30 +1,30 @@
 import axios, { AxiosError } from 'axios'
 
-type FastAPIErrorDetail = {
-    msg: string
-    loc?: (string | number)[]
-    type?: string
+interface APIError {
+    field: string;
+    message: string;
 }
 
-type FastAPIErrorResponse = {
-    detail?: string | FastAPIErrorDetail[]
+interface APIErrorResponse {
+    success: boolean;
+    code: string;
+    message: string;
+    errors?: APIError[];
 }
+
 export const parseApiError = (error: unknown): string => {
     if (axios.isAxiosError(error)) {
-        const err = error as AxiosError<FastAPIErrorResponse>
-        const detail = err.response?.data?.detail
+        const err = error as AxiosError<APIErrorResponse>
+        const data = err.response?.data
 
-        if (typeof detail === 'string') {
-            return detail
+        if (data?.errors && data.errors.length > 0) {
+            return data.errors
+                .map((e) => `${e.field} ${e.message}`.toLowerCase())
+                .join(', ')
         }
 
-        if (Array.isArray(detail) && detail.length > 0) {
-            return detail
-                .map((d) => {
-                    const field = d.loc?.[d.loc.length - 1]
-                    return field ? `${field}: ${d.msg}` : d.msg
-                })
-                .join(', ')
+        if (data?.message) {
+            return data.message
         }
 
         return err.message

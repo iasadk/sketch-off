@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
 
 class RoomCreateSchema(BaseModel):
-    name: str = Field(..., description="The name of the room to be created")
+    room_name: str = Field(..., description="The name of the room to be created")
+    player_name: str = Field(..., description="The name of the player is required")
     max_players: int = Field(default=2, description="The maximum number of players allowed in the room", ge=2,le=10)
 
 class JoinRoomSchema(BaseModel):

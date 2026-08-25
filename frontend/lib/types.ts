@@ -43,3 +43,10 @@ export interface CreateRoomResponse {
     "max_players": number,
     "players": Player[]
 }
+
+export interface Response<T>{
+    success: boolean;
+    data: T,
+    code: number;
+    message: string
+}

@@ -7,7 +7,7 @@ router = APIRouter(
     tags=["room"],
 )
 
-@router.post('/create', status_code=status.HTTP_201_CREATED, response_model=dict)
+@router.post('/create', status_code=status.HTTP_201_CREATED, response_model=SuccessResponse)
 async def create_room_endpoint(room_data: RoomCreateSchema):
     """
     Endpoint to create a new room.
@@ -17,7 +17,7 @@ async def create_room_endpoint(room_data: RoomCreateSchema):
     return SuccessResponse(message="Room Created", data=result)
 
 
-@router.post('/join', status_code=status.HTTP_200_OK, response_model=dict)
+@router.post('/join', status_code=status.HTTP_200_OK, response_model=SuccessResponse)
 async def join_room(join_room_data: JoinRoomSchema):
     """
     Endpoint to join an existing room.

@@ -6,10 +6,10 @@ async def create_room(room_data: RoomCreateSchema):
     ROOM_CODE = generate_room_code();
 
     data = {
-        "name": room_data.name,
+        "name": room_data.room_name,
         "code": ROOM_CODE,
         "max_players": room_data.max_players,
-        "players": []
+        "players": [{"name": room_data.player_name, "score":  0}]
     }
     # saving to db:
     await db.rooms.insert_one(data)
