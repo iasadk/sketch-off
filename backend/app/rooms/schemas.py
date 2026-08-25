@@ -9,4 +9,4 @@ class RoomCreateSchema(BaseModel):
 class JoinRoomSchema(BaseModel):
     player_name: str = Field(..., description="The name of the player to join the room", min_length=3, max_length=20)
     unique_player_id: str = Field(..., description="A unique player id is required")
-    code: str = Field(..., description="The unique code of the room to join", min_length=6, max_length=6,   pattern="^[A-Z0-9]+$")
+    room_code: str = Field(..., description="The unique code of the room to join", min_length=6, max_length=6,   pattern="^[A-Z0-9]+$")

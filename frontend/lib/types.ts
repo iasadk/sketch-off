@@ -23,7 +23,7 @@ export const CreateFormValidationSchema = z.object({
 export type CreateFormType = z.infer<typeof CreateFormValidationSchema>
 
 export type CreateRoomPayload = CreateFormType & {
-  unique_player_id: string;
+    unique_player_id: string;
 };
 export const JoinFormValidationSchema = z.object({
     room_code: z.string().min(6, { error: 'Must be of min length 6' }).max(6, { error: 'Must be of max length 6' }),
@@ -31,8 +31,11 @@ export const JoinFormValidationSchema = z.object({
 })
 
 export type JoinFormType = z.infer<typeof JoinFormValidationSchema>
+export type JoinRoomPayload = JoinFormType & {
+    unique_player_id: string;
 
-export type Player = { 
+}
+export type Player = {
     uuid: string,
     score: number,
     name: string
@@ -45,7 +48,7 @@ export interface CreateRoomResponse {
     "players": Player[]
 }
 
-export interface Response<T>{
+export interface Response<T> {
     success: boolean;
     data: T,
     code: number;

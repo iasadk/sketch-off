@@ -24,10 +24,22 @@ async def create_room(room_data: RoomCreateSchema):
     
 async def join_room_service(payload: JoinRoomSchema):
     # Check if the room exists in db:
-    room = await db.rooms.find_one({"code": payload.code});
+    room = await db.rooms.find_one({"code": payload.room_code});
     
     if room is None:
-        raise RoomNotFoundException(payload.code)
+        raise RoomNotFoundException(payload.room_code)
+    is_already_in_room = any(
+            player["uuid"] == payload.unique_player_id
+            for player in room["players"]
+        )
+    if is_already_in_room:
+        return {
+        "_id": str(room["_id"]),
+        "name": room["name"],
+        "code": room["code"],
+        "max_players": room["max_players"],
+        "players": room["players"]
+    }
     
     result = await db.rooms.update_one(
         {
@@ -53,7 +65,7 @@ async def join_room_service(payload: JoinRoomSchema):
     if result.modified_count == 0:
         raise RoomFullError()
     
-    updatedRoom = await db.rooms.find_one({"code": payload.code})
+    updatedRoom = await db.rooms.find_one({"code": payload.room_code})
     return {
         "_id": str(updatedRoom["_id"]),
         "name": updatedRoom["name"],

@@ -1,8 +1,12 @@
 'use client'
 import { JoinFormType, JoinFormValidationSchema } from '@/lib/types'
-import { cn } from '@/lib/util'
+import { cn, getSessionStorage, getUUID, setSessionStorage } from '@/lib/util'
+import { parseApiError } from '@/rest-api/error'
+import { joinRoom } from '@/rest-api/room'
 import { zodResolver } from '@hookform/resolvers/zod'
+import axios from 'axios'
 import { useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
 
 type Props = {
     onChange?: () => void,
@@ -14,6 +18,7 @@ const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCod
     const {
         register,
         handleSubmit,
+        reset,
         formState: { errors },
     } = useForm<JoinFormType>({
         resolver: zodResolver(JoinFormValidationSchema),
@@ -22,9 +27,20 @@ const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCod
             room_code
         }
     });
-
-    const submitForm = (data: JoinFormType) => {
-        window.location.href = `/room/${encodeURI(data.room_code)}`;
+    const errorToast = (msg: string) => toast.error(msg);
+    const submitForm = async (data: JoinFormType) => {
+        try {
+            const unique_player_id = getSessionStorage<string>("UUID") ?? getUUID()
+            const {data: res} = await joinRoom({...data, unique_player_id });
+            reset()
+            setSessionStorage("ROOM_CODE", res.code);
+            setSessionStorage("UUID", unique_player_id);
+            window.location.href = `/room/${encodeURI(res.code)}`;
+        } catch (error: any) {
+            if(axios.isAxiosError(error)){
+                errorToast(parseApiError(error))
+            }
+        }
     }
     return (
         <form className="w-full max-w-md space-y-5 rounded-2xl bg-white/10 p-6 shadow-xl backdrop-blur-md" onSubmit={handleSubmit(submitForm)}>
