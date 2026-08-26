@@ -1,5 +1,8 @@
 'use client'
+import { useRouter } from 'next/navigation';
+
 const NotFound = () => {
+  const router = useRouter()
   return (
     <div className="min-h-screen flex items-center justify-center px-4 ">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-white/10 p-6 shadow-xl backdrop-blur-md text-center">
@@ -20,7 +23,7 @@ const NotFound = () => {
         </p>
 
         <button
-          onClick={() => window.location.href = "/"}
+          onClick={() => router.push("/")}
           className="mt-6 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
         >
           Go Back

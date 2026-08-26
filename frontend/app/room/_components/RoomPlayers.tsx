@@ -1,37 +1,28 @@
-import React from 'react'
-import PlayerCard from './PlayerCard'
+'use client'
 import { Player } from '@/lib/types'
+import PlayerCard from './PlayerCard'
+import { useSocket } from '@/provider/websocket'
+import { useEffect, useState } from 'react'
 
 type Props = {
-  players: Player[]
 }
-const Players = [
-  {
-    position: 1,
-    name: 'Asad Khan',
-    points: 5
-  },
-  {
-    position: 2,
-    name: 'Arshad Khan',
-    points: 5
-  },
-  {
-    position: 3,
-    name: 'Sana Khan',
-    points: 5
-  },
-  {
-    position: 4,
-    name: 'Suhana Khan Malik',
-    points: 5
-  },
-]
-const RoomPlayers = ({players}: Props) => {
+const RoomPlayers = ({ }: Props) => {
+  const [players, setPlayers] = useState<Player[]>([])
+  const {subscribe} = useSocket();
+
+  useEffect(() => {
+    const unsubscribe = subscribe("PLAYERS", ({content}) =>{
+      console.log(content, "JOINED")
+      setPlayers(content.players as Player[])
+    })
+  
+    return unsubscribe
+  }, [subscribe])
+  
   return (
     <div className='bg-white h-full w-full  text-center font-semibold rounded-sm'>
       {
-        players.map((player, idx) => <PlayerCard name={player.name} points={player.score} position={idx + 1} key={idx + 1}/>)
+        players.map((player, idx) => <PlayerCard name={player.name} points={player.score} position={idx + 1} key={idx + 1} isOwner={player.is_owner} />)
       }
     </div>
   )

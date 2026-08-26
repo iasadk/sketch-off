@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation';
 
 type Props = {
     onChange?: () => void,
@@ -14,7 +15,8 @@ type Props = {
     room_code?: string,
     disableCodeEdit?: boolean
 }
-const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCodeEdit = false }: Props) => {
+const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCodeEdit = false}: Props) => {    
+    const router = useRouter()
     const {
         register,
         handleSubmit,
@@ -35,7 +37,7 @@ const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCod
             reset()
             setSessionStorage("ROOM_CODE", res.code);
             setSessionStorage("UUID", unique_player_id);
-            window.location.href = `/room/${encodeURI(res.code)}`;
+                window.location.href = `/room/${encodeURI(res.code)}`;
         } catch (error: any) {
             if(axios.isAxiosError(error)){
                 errorToast(parseApiError(error))

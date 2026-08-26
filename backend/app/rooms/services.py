@@ -9,7 +9,7 @@ async def create_room(room_data: RoomCreateSchema):
         "name": room_data.room_name,
         "code": ROOM_CODE,
         "max_players": room_data.max_players,
-        "players": [{"uuid": room_data.unique_player_id, "name": room_data.player_name, "score":  0}]
+        "players": [{"uuid": room_data.unique_player_id, "name": room_data.player_name, "score":  0, "is_owner": True}]
     }
     # saving to db:
     await db.rooms.insert_one(data)
@@ -56,7 +56,8 @@ async def join_room_service(payload: JoinRoomSchema):
                 "players": {
                     "uuid": payload.unique_player_id,
                     "name": payload.player_name,
-                    "score": 0
+                    "score": 0,
+                    "is_owner": False
                 }
             }
         }
@@ -96,5 +97,36 @@ async def removePlayerFromRoom(room_code: str, player_unique_id: str):
             }
         }
     })
+    room = await db.rooms.find_one({"code": room_code})
+    if room is None: 
+        return
+    if len(room["players"]) == 0:
+        # Delete the room:
+        await deleteRoom(room_code=room_code)
     
+    await updateRoomOwner(room_code=room_code)
     return result
+
+
+async def deleteRoom(room_code: str):
+    deletedCount = await db.rooms.delete_one({ "code": room_code })
+    return deletedCount.deleted_count > 0
+
+async def updateRoomOwner(room_code: str):
+    room = await db.rooms.find_one({"code": room_code})
+    
+    if not room:
+        return
+    
+    players = room.get("players", [])
+    currentOwner = next((player for player in players if player.get("is_owner")), None)
+    if currentOwner is not None:
+        return
+    if len(players):
+        players[0]["is_owner"] = True
+        
+        await db.rooms.update_one({"code": room_code},{
+            "$set":{
+                "players": players
+            }
+        })

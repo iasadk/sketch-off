@@ -10,17 +10,20 @@ import {
     useState,
 } from "react";
 
-type SocketContextType = {
-    socket: WebSocket | null;
-    sendMessage: (message: Message) => void,
-    isReady: boolean
-
-};
-type MessageType = "DRAW"  | "JOIN" |  "TEST"
+type MessageType = "DRAW" | "JOIN" | "TEST" |  "PLAYERS"
 type Message = {
     type: MessageType,
-    message: Record<string, unknown>
+    content: Record<string, unknown>
 }
+type MessageHandler = (message: Message) => void
+type SocketContextType = {
+    socket: WebSocket | null;
+    sendMessage: (message: Message) => void;
+    isReady: boolean;
+    subscribe: (type: MessageType, handler: MessageHandler) => () => void;
+
+};
+
 const SocketContext = createContext<SocketContextType | null>(null);
 
 export const SocketProvider = ({
@@ -30,7 +33,7 @@ export const SocketProvider = ({
     children: React.ReactNode;
     roomCode: string;
 }) => {
-    const socketRef = useRef<WebSocket | null>(null);
+    const listenersRef = useRef(new Map<MessageType, Set<MessageHandler>>());
     const [socket, setSocket] = useState<WebSocket | null>(null)
     const [isSocketReady, setIsSocketReady] = useState(false)
     const sendMessage = (message: Message) => {
@@ -39,6 +42,18 @@ export const SocketProvider = ({
     }
 
 
+    const subscribe = (type: MessageType, handler: MessageHandler) => {
+        const listeners = listenersRef.current;
+
+        if (listeners.has(type)) {
+            listeners.get(type)!.add(handler)
+        } else {
+            listeners.set(type, new Set())
+        }
+
+        const unsubscribe = () => listeners.get(type)?.delete(handler)
+        return unsubscribe
+    }
     useEffect(() => {
         const unique_user_id = getSessionStorage<string>("UUID")
         const ws = new WebSocket(
@@ -56,13 +71,23 @@ export const SocketProvider = ({
             }));
 
             if (unique_user_id) {
-                console.log({ type: "JOIN", message: { unique_user_id } })
-                ws.send(JSON.stringify({ type: "JOIN", message: { unique_user_id } }))
+                console.log({ type: "JOIN", content: { unique_user_id } })
+                ws.send(JSON.stringify({ type: "JOIN", content: { unique_user_id } }))
             }
         };
 
         ws.onmessage = (event) => {
-            console.log(event)
+            try {
+                const data: Message = JSON.parse(event.data);
+
+                const handlers = listenersRef.current.get(data.type);
+
+                handlers?.forEach((handler) => {
+                    handler(data);
+                });
+            } catch (error) {
+                console.error("Invalid WebSocket message:", error);
+            }
         };
         ws.onclose = () => {
             setIsSocketReady(false)
@@ -76,7 +101,7 @@ export const SocketProvider = ({
 
         return () => {
             ws.close();
-            socketRef.current = null;
+            setSocket(null)
         };
     }, [roomCode]);
 
@@ -85,7 +110,8 @@ export const SocketProvider = ({
             value={{
                 socket,
                 sendMessage: sendMessage,
-                isReady: isSocketReady
+                isReady: isSocketReady,
+                subscribe
             }}
         >
             {children}

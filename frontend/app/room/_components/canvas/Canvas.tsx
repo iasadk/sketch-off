@@ -2,10 +2,12 @@
 import React, { useEffect, useRef } from 'react'
 import Toolbar from './Toolbar'
 import { Color, Stroke, StrokeWidth, Tool } from '@/lib/types'
+import { useSocket } from '@/provider/websocket'
 
 type Props = {}
 
 const Canvas = (props: Props) => {
+  const { sendMessage, subscribe } = useSocket()
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const colorRef = useRef<Color>("#000000")
   const strokeWidthRef = useRef<StrokeWidth>(5)
@@ -98,11 +100,11 @@ const Canvas = (props: Props) => {
   }
   const handlePointerUp = () => {
     isDrawing.current = false;
-    console.log(currentStrokeRef.current)
     if (currentStrokeRef.current) strokesRef.current.push(currentStrokeRef.current);
     currentStrokeRef.current = null;
 
-    console.log(strokesRef.current)
+    sendMessage({ type: "DRAW", content: { stokes: strokesRef.current } })
+    // console.log(strokesRef.current)
   }
 
   const drawPath = (prevX: number, prevY: number, currentX: number, currentY: number, canvas: HTMLCanvasElement) => {
@@ -152,7 +154,7 @@ const Canvas = (props: Props) => {
     toolRef.current = tool;
   }
 
-  const redrawCanvas = () => {
+  const redrawCanvas = (strokes: Stroke[]) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -161,7 +163,7 @@ const Canvas = (props: Props) => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    for (const stroke of strokesRef.current) {
+    for (const stroke of strokes) {
       if (stroke.points.length === 0) continue;
 
       ctx.globalCompositeOperation = stroke.tool === 'brush' ? 'source-over' : 'destination-out';
@@ -239,7 +241,15 @@ const Canvas = (props: Props) => {
     // ctx.stroke();
   }, [])
 
-
+  useEffect(() => {
+    const unsubscribe = subscribe("DRAW", (data) => {
+      console.log(`Receiving ${data.type} event with following data:  ${JSON.stringify(data.content)}`)
+      redrawCanvas(data.content.stokes as Stroke[])
+    })
+  
+    return unsubscribe
+  }, [subscribe])
+  
 
   return (
     <div className='flex flex-col gap-y-2'>

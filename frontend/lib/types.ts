@@ -38,7 +38,8 @@ export type JoinRoomPayload = JoinFormType & {
 export type Player = {
     uuid: string,
     score: number,
-    name: string
+    name: string;
+    is_owner: boolean
 }
 export interface CreateRoomResponse {
     "_id": string,

@@ -2,9 +2,10 @@ from fastapi import WebSocket
 from  collections import defaultdict
 from pydantic import BaseModel
 from app.rooms.services import removePlayerFromRoom
+from typing import Any, Literal
 class Message(BaseModel):
-    type: str
-    content: str
+    type: Literal["DRAW", "JOIN", "PLAYERS"]
+    content: dict[str, Any]
 class WebsocketConnectionManager:
     def __init__(self):
         self.rooms: dict[str, dict[WebSocket, str]] = defaultdict(dict)
@@ -15,7 +16,11 @@ class WebsocketConnectionManager:
     
     async def remove_connection(self, room_code: str, websocket: WebSocket):
         try:
-            player_unique_id = self.rooms.get(room_code).get(websocket)
+            room = self.rooms.get(room_code)
+            if not room:
+                return
+
+            player_unique_id = room.get(websocket)
             self.rooms[room_code].pop(websocket)
             print(f"Client: {player_unique_id} removed from room {room_code}")
             await removePlayerFromRoom(room_code=room_code, player_unique_id=player_unique_id)
@@ -42,8 +47,9 @@ class WebsocketConnectionManager:
         print(f"Sending message to total {len(self.rooms.get(room_code, {}))} clients in a room")
         for i, connection in enumerate(connections):
             try:
-                await connection.send_json(message)
-            except Exception:
-                print(f"Failed to send message to connection at pos: {i}")
+                await connection.send_json(message.model_dump())
+            except Exception as e:
+                print(e)
+                print(f"Failed to send message to connection at pos: {i} ${message.model_dump()}")
                 
 manager = WebsocketConnectionManager()
