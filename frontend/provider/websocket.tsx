@@ -2,9 +2,12 @@
 
 import { SOCKET_BASE_URL } from "@/lib/constants";
 import {
+  ChatMessageType,
   DrawMessageType,
+  GameStateMessageType,
   JoinMessageType,
   PlayersMessageType,
+  SelectWordMessageType,
   TestMessageType,
 } from "@/lib/types";
 import { getSessionStorage } from "@/lib/util";
@@ -18,6 +21,9 @@ import {
 
 
 type MessageMap = {
+  GAME_STATE: GameStateMessageType;
+  SELECT_WORD: SelectWordMessageType
+  CHAT: ChatMessageType;
   DRAW: DrawMessageType;
   JOIN: JoinMessageType;
   PLAYERS: PlayersMessageType;
@@ -146,9 +152,19 @@ export const SocketProvider = ({
       }
     };
 
-    ws.onclose = () => {
+    // ws.onclose = () => {
+    //   setIsSocketReady(false);
+    //   console.log("🔴 WebSocket disconnected");
+    // };
+
+    ws.onclose = (event) => {
+      console.log("🔴 WebSocket disconnected", {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
+
       setIsSocketReady(false);
-      console.log("🔴 WebSocket disconnected");
     };
 
     ws.onerror = (error) => {

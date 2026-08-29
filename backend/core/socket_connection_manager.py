@@ -3,7 +3,7 @@ from  collections import defaultdict
 from pydantic import BaseModel
 from typing import Any, Literal
 class Message(BaseModel):
-    type: Literal["DRAW", "JOIN", "PLAYERS"]
+    type: Literal["DRAW", "JOIN", "PLAYERS", "GAME_STATE", "CHAT" , "SELECT_WORD"]
     content: dict[str, Any]
 class WebsocketConnectionManager:
     def __init__(self):
@@ -37,7 +37,7 @@ class WebsocketConnectionManager:
         print(f"Sending message to all {len(room_clients)}")
         for i, connection in enumerate(room_clients):
             try:
-                await connection.send_json(message)
+                await connection.send_text(message)
             except Exception:
                 print(f"Failed to send message to connection at pos: {i}")
     
@@ -47,10 +47,10 @@ class WebsocketConnectionManager:
         print(f"Sending message to total {len(self.rooms.get(room_code, {}))} clients in a room")
         for i, connection in enumerate(connections):
             try:
-                await connection.send_json(message.model_dump())
+                await connection.send_text(message.model_dump_json())
             except Exception as e:
                 print(e)
-                print(f"Failed to send message to connection at pos: {i} ${message.model_dump()}")
+                print(f"Failed to send message to connection at pos: {i} ${message.model_dump_json()}")
                 
     async def selective_broadcast(self, room_code: str, uuid: str, message: Message, selection_type: Literal["INCLUDE","EXCLUDE"]):
         connections = list(self.rooms.get(room_code, {}).keys())
@@ -66,9 +66,9 @@ class WebsocketConnectionManager:
                 )
 
                 if should_send:
-                    await connection.send_json(message.model_dump())
+                    await connection.send_text(message.model_dump_json())
             except Exception as e:
                 print(e)
-                print(f"Failed to send message to connection at pos: {i} ${message.model_dump()}")
+                print(f"Failed to send message to connection at pos: {i} ${message.model_dump_json()}")
                 
 manager = WebsocketConnectionManager()

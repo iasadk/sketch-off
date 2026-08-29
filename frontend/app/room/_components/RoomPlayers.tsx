@@ -1,11 +1,10 @@
 'use client'
-import { Player } from '@/lib/types'
-import PlayerCard from './PlayerCard'
-import { useSocket } from '@/provider/websocket'
-import { useEffect, useState } from 'react'
-import { useGameStore } from '@/store/room'
 import { getSessionStorage } from '@/lib/util'
+import { useSocket } from '@/provider/websocket'
+import { useGameStore } from '@/store/room'
+import { useEffect } from 'react'
 import { useShallow } from 'zustand/shallow'
+import PlayerCard from './PlayerCard'
 
 type Props = {
 }

@@ -15,19 +15,69 @@ import { useGameStore } from '@/store/room'
 import { useShallow } from 'zustand/shallow'
 import StartGame from './canvas/overlays/StartGame'
 import GameNotStarted from './canvas/overlays/GameNotStarted'
+import ChooseWords from './canvas/overlays/ChooseWords'
 
 type Props = {
     roomData: CreateRoomResponse
 }
 
 const RoomRenderer = ({ roomData }: Props) => {
-    const { isOwner } = useGameStore(useShallow((state) => ({ isOwner: state.is_owner })))
-
+    const { isOwner, updateGameState, updateArtist, gameState, artistId, updateWordsList, updateChooseWordStartedAt, updateChooseWordDuration, updateRoundStartedAt, updateRoundDuration } = useGameStore(useShallow((state) => ({
+        isOwner: state.is_owner,
+        updateGameState: state.updateGameState,
+        updateArtist: state.updateArtist,
+        gameState: state.gameState,
+        artistId: state.artistId,
+        updateWordsList: state.updateWordsList,
+        updateChooseWordStartedAt: state.updateChooseWordStartedAt,
+        updateChooseWordDuration: state.updateChooseWordDuration,
+        updateRoundStartedAt: state.updateRoundStartedAt,
+        updateRoundDuration: state.updateRoundDuration,
+    })))
+    const { subscribe } = useSocket()
     const [playerUniqueId, setPlayerUniqueId] = useState<string | null>(null);
     useEffect(() => {
         const unique_user_id = getSessionStorage<string>("UUID");
         setPlayerUniqueId(unique_user_id);
     }, []);
+
+    useEffect(() => {
+        const unsubscribers: (() => void)[] = []
+        const unsubscribeGameState = subscribe("GAME_STATE", (message) => {
+            const {
+                game_state,
+                artist_id,
+                choose_word_duration,
+                choose_word_started_at,
+                round_duration,
+                round_started_at } = message.content
+            updateGameState(game_state);
+            updateArtist(artist_id);
+            updateChooseWordDuration(choose_word_duration ?? 0);
+            updateChooseWordStartedAt(choose_word_started_at ?? null);
+            updateRoundDuration(round_duration ?? 0);
+            updateRoundStartedAt(round_started_at ?? null);
+            console.log("[CURRENT GAME STATE]: ", game_state)
+            console.log("[CURRENT ARTIST STATE]: ", artist_id)
+            console.log("[CURRENT TIME STATE]: ", { choose_word_duration, choose_word_started_at, round_duration, round_started_at })
+            // updateGameState(game_state)
+            // updateArtist(artist_id)
+            // choose_word_duration && updateChooseWordDuration(choose_word_duration)
+            // choose_word_started_at && updateChooseWordStartedAt(choose_word_started_at)
+            // round_duration && updateRoundDuration(choose_word_duration)
+            // round_started_at && updateRoundStartedAt(round_started_at)
+        })
+        const unsubscribeSelectWord = subscribe("SELECT_WORD", (message) => {
+            const { words } = message.content
+            updateWordsList(words)
+        })
+        unsubscribers.push(unsubscribeGameState, unsubscribeSelectWord)
+
+        return () => {
+            unsubscribers.forEach(unsubscribe => unsubscribe())
+        }
+    }, [subscribe])
+
 
     const playerInfo = roomData.players.find(
         player => player.uuid === playerUniqueId
@@ -48,12 +98,15 @@ const RoomRenderer = ({ roomData }: Props) => {
     }
 
     const playAreaRenderer = () => {
-        if (isOwner){
-            return <StartGame/>
-        }else{
-            return <GameNotStarted/>
+        if (gameState === "NOT_STARTED" && isOwner) {
+            return <StartGame />
+        } else if (gameState === "NOT_STARTED" && !isOwner) {
+            return <GameNotStarted />
+        } else if (gameState === "CHOOSING_WORD" && playerUniqueId === artistId) {
+            return <ChooseWords />
         }
     }
+
     return (
         <>
             <SessionCleanup />
@@ -62,7 +115,7 @@ const RoomRenderer = ({ roomData }: Props) => {
                     <div className="grid grid-cols-10 w-full gap-x-2 gap-y-2">
                         <div className="col-span-10">
                             <RoomHeader />
-                            <SocketDevTools showTool={true} />
+                            {/* <SocketDevTools showTool={true} /> */}
                         </div>
                         <div className="col-span-2">
                             <RoomPlayers />

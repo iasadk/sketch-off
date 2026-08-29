@@ -1,10 +1,11 @@
-from app.rooms.schemas import RoomCreateSchema, JoinRoomSchema
-from app.rooms.exceptions import RoomNotFoundException, RoomFullError, InsufficientPlayers
+from app.rooms.schemas import RoomCreateSchema, JoinRoomSchema, StartGameSchema
+from app.rooms.exceptions import RoomNotFoundException, RoomFullError, InsufficientPlayers, NotAllowedToStartGame
 from lib.utils import generate_room_code
 from db.mongodb import db
 from random import choice
 from datetime import datetime, timezone
 from core.socket_connection_manager import manager, Message
+from pymongo import ReturnDocument
 async def create_room(room_data: RoomCreateSchema):
     ROOM_CODE = generate_room_code();
 
@@ -17,6 +18,8 @@ async def create_room(room_data: RoomCreateSchema):
            "total_rounds": 3,
            "round_started_at": None,
            "round_duration": None,
+           "choose_word_started_at": None,
+           "choose_word_duration": None,
            "choosed_word": None,
            "status": "NOT_STARTED" 
         },
@@ -97,6 +100,7 @@ async def getRoom(room_code: str):
     "name": room["name"],
     "code": room["code"],
     "max_players": room["max_players"],
+    "game_state": room["game_state"],
     "players": room["players"]
     }   
     
@@ -141,13 +145,20 @@ async def updateRoomOwner(room_code: str):
             }
         })
 
-async def start_game(room_code: str):
-    room = await db.rooms.find_one({"room_code": room_code})
+async def start_game(payload: StartGameSchema):
+    room = await db.rooms.find_one({"code": payload.room_code})
     if not room:
-        raise RoomNotFoundException(room_code=room_code)
+        raise RoomNotFoundException(room_code=payload.room_code)
     
+    print(room)
     players = room["players"]
+    room_owner = next(
+        (player for player in players if player["is_owner"]),
+        None
+    )
     
+    if room_owner and room_owner["uuid"] != payload.unique_player_id:
+        raise NotAllowedToStartGame()
     if len(players) < 2:
         raise InsufficientPlayers()
     previous_artist_id = room["game_state"]["artist_id"]
@@ -163,36 +174,59 @@ async def start_game(room_code: str):
     artist = choice(eligible_players)
     prev_round = room["game_state"]["current_round"]
     
-    await db.rooms.update_one({
-        "room_code": room_code
+    updatedRoom = await db.rooms.find_one_and_update({
+        "code": payload.room_code
     },{
         "$set": {
             "game_state.artist_id": artist["uuid"],
-            "game_state.status": "CHOOSE_WORD",
+            "game_state.status": "CHOOSING_WORD",
             "game_state.choosed_word": None,
-            "game_state.choice_started_at": datetime.now(timezone.utc),
-            "game_state.choice_select_duration": 15,
+            "game_state.choose_word_started_at": datetime.now(timezone.utc).isoformat(),
+            "game_state.choose_word_duration": 15,
             "game_state.round_started_at": None,
             "game_state.round_duration": None,
             "game_state.current_round": prev_round + 1,
         }
-    })
+    },
+    return_document=ReturnDocument.AFTER
+    )
+    
+    # Sending Game State to every participant:
+    await manager.broadcast_to_room(
+    room_code=payload.room_code,
+    message=Message(
+        type="GAME_STATE",
+        content={
+            "game_state": updatedRoom["game_state"]["status"],
+            "artist_id": updatedRoom["game_state"]["artist_id"],
+            "round_duration": updatedRoom["game_state"]["round_duration"],
+            "round_started_at": (
+                updatedRoom["game_state"]["round_started_at"]
+                if updatedRoom["game_state"]["round_started_at"]
+                else None
+            ),
+            "choose_word_duration": updatedRoom["game_state"]["choose_word_duration"],
+            "choose_word_started_at": (
+                updatedRoom["game_state"]["choose_word_started_at"]
+                if updatedRoom["game_state"]["choose_word_started_at"]
+                else None
+            ),
+        })
+    )
     
     # Sending event to participants except artist to inform we're in choosing word phase
-    await manager.selective_broadcast(room_code=room_code, uuid=artist["uuid"], message=Message(
-    type="CHOOSING_WORD",
-    content={
-        "data": f'{artist["name"]} is choosing a word'
-    }
-), selection_type="EXCLUDE")
+    await manager.selective_broadcast(room_code=payload.room_code, uuid=artist["uuid"], message=Message(
+    type="CHAT",
+    content={"msg": f'{artist["name"]} is choosing a word', "color": "orange"}), 
+    selection_type="EXCLUDE")
     
-    # Sending event to artish only to choose words from
-    await manager.selective_broadcast(room_code=room_code, uuid=artist["uuid"], message=Message(
+    # Sending event to artist only to choose words from
+    await manager.selective_broadcast(room_code=payload.room_code, uuid=artist["uuid"], message=Message(
     type="SELECT_WORD",
     content={
         "words": ["HELLO", "RIVER", "SUN"]
-    }
-), selection_type="INCLUDE")
+    }), 
+    selection_type="INCLUDE")
     
     
     

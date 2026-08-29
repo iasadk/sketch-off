@@ -33,7 +33,10 @@ export const JoinFormValidationSchema = z.object({
 export type JoinFormType = z.infer<typeof JoinFormValidationSchema>
 export type JoinRoomPayload = JoinFormType & {
     unique_player_id: string;
-
+}
+export type StartGamePayload = {
+    unique_player_id: string;
+    room_code: string
 }
 export type Player = {
     uuid: string,
@@ -57,6 +60,35 @@ export interface Response<T> {
 }
 
 export type validSessionStorageKeys = "ROOM_CODE" | "UUID"
+export type GAME_STATE = "NOT_STARTED" | "CHOOSING_WORD" | "ROUND_START" | "ROUND_OVER" | "GAME_OVER"
+export type CHAT_COLORS = "GREEN" | "ORANGE" | "RED"
+
+export type GameStateMessageType = {
+    type: "GAME_STATE"
+    content: {
+        game_state: GAME_STATE,
+        round_duration: number,
+        round_started_at: string | null,
+        choose_word_duration: number,
+        choose_word_started_at: string | null,
+        artist_id: string
+    },
+}
+
+export type SelectWordMessageType = {
+    type: "SELECT_WORD"
+    content: {
+       words: string[]
+    },
+}
+
+export type ChatMessageType = {
+    type: "CHAT"
+    content: {
+        msg: string
+        color: CHAT_COLORS
+    },
+}
 
 export type DrawMessageType = {
     type: "DRAW"

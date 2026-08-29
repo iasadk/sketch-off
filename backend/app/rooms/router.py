@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
-from app.rooms.schemas import RoomCreateSchema, JoinRoomSchema
-from app.rooms.services import create_room, join_room_service, getRoom
+from app.rooms.schemas import RoomCreateSchema, JoinRoomSchema,StartGameSchema
+from app.rooms.services import create_room, join_room_service, getRoom, start_game
 from core.schemas import SuccessResponse
 router = APIRouter(
     prefix="/room",
@@ -24,6 +24,15 @@ async def join_room(join_room_data: JoinRoomSchema):
     """
     res = await join_room_service(join_room_data)
     return SuccessResponse(message="Room Joined", data=res)
+
+
+@router.post('/start-game', status_code=status.HTTP_200_OK, response_model=SuccessResponse)
+async def join_room(body: StartGameSchema):
+    """
+    Endpoint to start our game
+    """
+    res = await start_game(body)
+    return SuccessResponse(message="Game Started", data=None)
 
 
 @router.get("/info/{room_code}", status_code=200, response_model=SuccessResponse)

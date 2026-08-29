@@ -1,11 +1,131 @@
-import React from 'react'
+"use client";
 
-type Props = {}
+import { useGameStore } from "@/store/room";
+import { useEffect, useState } from "react";
 
-const RoomHeader = (props: Props) => {
+const RoomHeader = () => {
+  const gameState = useGameStore((state) => state.gameState);
+
+  const chooseWordStartedAt = useGameStore(
+    (state) => state.choose_word_started_at
+  );
+  const chooseWordDuration = useGameStore(
+    (state) => state.choose_word_duration
+  );
+
+  const roundStartedAt = useGameStore(
+    (state) => state.round_started_at
+  );
+  const roundDuration = useGameStore(
+    (state) => state.round_duration
+  );
+
+  const choosedWord = useGameStore((state) => state.choosed_word);
+
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  const isChoosingWord = gameState === "CHOOSING_WORD";
+  const isRoundActive = gameState === "ROUND_START";
+
+  const startedAt = isChoosingWord
+    ? chooseWordStartedAt
+    : roundStartedAt;
+
+  const duration = isChoosingWord
+    ? chooseWordDuration
+    : roundDuration;
+  // const startedAt = '2026-08-29T21:47:04.096Z'
+
+  // const duration = 60
+
+  const parseIsoTimestamp = (iso: string) => {
+    // trim microseconds -> milliseconds: ...880772+00:00 -> ...880+00:00
+    const fixed = iso.replace(/(\.\d{3})\d+/, "$1");
+    return new Date(fixed).getTime();
+  };
+
+  console.log(startedAt ? parseIsoTimestamp(startedAt) : startedAt, duration, "DUR")
+  useEffect(() => {
+    if (!startedAt || !duration) {
+      setTimeLeft(0);
+      return;
+    }
+
+    const startTime = parseIsoTimestamp(startedAt);
+
+    const updateTimer = () => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, duration - elapsed);
+      console.log({
+        now: Date.now(),
+        startTime,
+        diffSeconds: (Date.now() - startTime) / 1000,
+        duration,
+      });
+      setTimeLeft(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt, duration]);
   return (
-    <div className='bg-white py-2 px-3 w-full h-14 text-black text-center font-semibold rounded-sm'>Room Header</div>
-  )
-}
+    <header className="relative flex h-14 w-full items-center rounded-sm bg-white px-3 text-black shadow-sm">
 
-export default RoomHeader
+      {/* Timer */}
+      <div className="flex items-center gap-3">
+        <div
+          className={`
+            flex h-11 w-11 items-center justify-center
+            rounded-full border-2 border-black
+            text-xl font-bold
+            ${timeLeft <= 10 ? "animate-pulse" : ""}
+          `}
+        >
+          {timeLeft}
+        </div>
+
+        <div className="text-lg font-bold">
+          {isChoosingWord
+            ? "Choose a word"
+            : isRoundActive
+              ? "Draw!"
+              : "Waiting..."}
+        </div>
+      </div>
+
+      {/* Center */}
+      <div className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center">
+        <span className="text-xs font-bold tracking-wide">
+          {isChoosingWord
+            ? "CHOOSE A WORD"
+            : isRoundActive
+              ? "GUESS THIS"
+              : gameState.replaceAll("_", " ")}
+        </span>
+
+        {isRoundActive && (
+          <span className="text-lg font-bold tracking-[0.25em]">
+            {choosedWord
+              ? choosedWord
+                .split("")
+                .map(() => "_")
+                .join(" ")
+              : "_ _ _ _ _ _"}
+          </span>
+        )}
+      </div>
+
+      {/* Settings */}
+      <button
+        type="button"
+        aria-label="Game settings"
+        className="ml-auto text-3xl transition-transform duration-200 hover:rotate-45"
+      >
+        ⚙
+      </button>
+    </header>
+  );
+};
+
+export default RoomHeader;
