@@ -26,11 +26,11 @@ const SocketDevTools = ({ showTool = false }: Props) => {
     const { sendMessage } = useSocket()
     const handleTestMessage = () => {
         console.log("Sending TEST message");
-        sendMessage({ type: "TEST", message: { data: "Hello Im test" } })
+        sendMessage({ type: "TEST", content: { message: "Hello Im test" } })
     };
     const handleJoinMessage = () => {
         console.log("Joining Room");
-        sendMessage({ type: "JOIN", message: { unique_user_id: "WHXIHX" } })
+        sendMessage({ type: "JOIN", content: { unique_user_id: "WHXIHX", "name": "UNKNOWN" } })
     };
 
     return (

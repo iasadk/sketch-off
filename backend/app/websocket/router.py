@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from core.socket_connection_manager import manager, Message
-from app.rooms.services import getRoom
+from app.rooms.services import getRoom, removePlayerFromRoom
 router = APIRouter(prefix='/ws', tags=['websocket'])
 
 
@@ -22,8 +22,8 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
             
     except WebSocketDisconnect as e:
         # disconnecting client:
-        # TODO: CONTINUE FROM THIS FUCKED UP LOGIC
-        await manager.remove_connection(room_code=room_code, websocket=websocket)
+        player_uuid = await manager.remove_connection(room_code=room_code, websocket=websocket)
+        if player_uuid: await removePlayerFromRoom(room_code=room_code, player_unique_id=player_uuid)
         roomInfo = await getRoom(room_code=room_code)
         await manager.broadcast_to_room(room_code=room_code, message=Message(type="PLAYERS", content={"players": roomInfo["players"] }))
         # Code 1000 = Normal disconnect

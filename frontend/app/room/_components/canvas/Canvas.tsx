@@ -3,10 +3,13 @@ import React, { useEffect, useRef } from 'react'
 import Toolbar from './Toolbar'
 import { Color, Stroke, StrokeWidth, Tool } from '@/lib/types'
 import { useSocket } from '@/provider/websocket'
+import { cn } from '@/lib/util'
+import { useGameStore } from '@/store/room'
 
 type Props = {}
 
 const Canvas = (props: Props) => {
+  // const {isOwner} = useGameStore((state) => ({isOwner: state.is_owner}))
   const { sendMessage, subscribe } = useSocket()
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const colorRef = useRef<Color>("#000000")
@@ -228,23 +231,12 @@ const Canvas = (props: Props) => {
     if (!canvas) return;
 
     setCavasResolution(canvas);
-    // const ctx = canvas.getContext('2d');
-
-    // if (!ctx) return;
-    // ctx.beginPath();
-
-    // ctx.lineWidth = 2;
-    // ctx.strokeStyle = "red";
-    // ctx.moveTo(50, 60);
-    // ctx.lineTo(200, 100);
-
-    // ctx.stroke();
   }, [])
 
   useEffect(() => {
     const unsubscribe = subscribe("DRAW", (data) => {
       console.log(`Receiving ${data.type} event with following data:  ${JSON.stringify(data.content)}`)
-      redrawCanvas(data.content.stokes as Stroke[])
+      redrawCanvas(data.content.stokes)
     })
   
     return unsubscribe
@@ -252,7 +244,7 @@ const Canvas = (props: Props) => {
   
 
   return (
-    <div className='flex flex-col gap-y-2'>
+    <div className={cn('flex flex-col gap-y-2')}>
       <div className='bg-white w-full h-150  text-center font-semibold rounded-sm'>
         <canvas
           ref={canvasRef}

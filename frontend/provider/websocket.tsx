@@ -1,130 +1,191 @@
 "use client";
 
 import { SOCKET_BASE_URL } from "@/lib/constants";
+import {
+  DrawMessageType,
+  JoinMessageType,
+  PlayersMessageType,
+  TestMessageType,
+} from "@/lib/types";
 import { getSessionStorage } from "@/lib/util";
 import {
-    createContext,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 
-type MessageType = "DRAW" | "JOIN" | "TEST" |  "PLAYERS"
-type Message = {
-    type: MessageType,
-    content: Record<string, unknown>
-}
-type MessageHandler = (message: Message) => void
-type SocketContextType = {
-    socket: WebSocket | null;
-    sendMessage: (message: Message) => void;
-    isReady: boolean;
-    subscribe: (type: MessageType, handler: MessageHandler) => () => void;
 
+type MessageMap = {
+  DRAW: DrawMessageType;
+  JOIN: JoinMessageType;
+  PLAYERS: PlayersMessageType;
+  TEST: TestMessageType;
+};
+
+type MessageType = keyof MessageMap;
+
+type Message = MessageMap[MessageType];
+
+type MessageHandler<T extends MessageType> = (
+  message: MessageMap[T]
+) => void;
+
+
+type SocketContextType = {
+  socket: WebSocket | null;
+  sendMessage: (message: Message) => void;
+  isReady: boolean;
+
+  subscribe: <T extends MessageType>(
+    type: T,
+    handler: MessageHandler<T>
+  ) => () => void;
 };
 
 const SocketContext = createContext<SocketContextType | null>(null);
 
 export const SocketProvider = ({
-    children,
-    roomCode,
+  children,
+  roomCode,
 }: {
-    children: React.ReactNode;
-    roomCode: string;
+  children: React.ReactNode;
+  roomCode: string;
 }) => {
-    const listenersRef = useRef(new Map<MessageType, Set<MessageHandler>>());
-    const [socket, setSocket] = useState<WebSocket | null>(null)
-    const [isSocketReady, setIsSocketReady] = useState(false)
-    const sendMessage = (message: Message) => {
-        if (!socket || socket.readyState !== WebSocket.OPEN) return;
-        socket.send(JSON.stringify(message))
+  const listenersRef = useRef(
+    new Map<MessageType, Set<MessageHandler<MessageType>>>()
+  );
+
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [isSocketReady, setIsSocketReady] = useState(false);
+
+  const sendMessage = (message: Message) => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+    socket.send(JSON.stringify(message));
+  };
+
+  const subscribe = <T extends MessageType>(
+    type: T,
+    handler: MessageHandler<T>
+  ) => {
+    const listeners = listenersRef.current;
+
+    if (!listeners.has(type)) {
+      listeners.set(type, new Set());
     }
 
+    /*
+     * MessageHandler<T> is compatible with the actual event type,
+     * but TypeScript cannot preserve that relationship inside Map.
+     */
+    const typedListeners = listeners.get(type)!;
 
-    const subscribe = (type: MessageType, handler: MessageHandler) => {
-        const listeners = listenersRef.current;
-
-        if (listeners.has(type)) {
-            listeners.get(type)!.add(handler)
-        } else {
-            listeners.set(type, new Set())
-        }
-
-        const unsubscribe = () => listeners.get(type)?.delete(handler)
-        return unsubscribe
-    }
-    useEffect(() => {
-        const unique_user_id = getSessionStorage<string>("UUID")
-        const ws = new WebSocket(
-            `${SOCKET_BASE_URL}/${roomCode}`
-        );
-
-        setSocket(ws);
-
-        ws.onopen = () => {
-            console.log("🟢 WebSocket connected");
-            setIsSocketReady(true)
-            ws.send(JSON.stringify({
-                type: "TEST",
-                message: "Hello from client"
-            }));
-
-            if (unique_user_id) {
-                console.log({ type: "JOIN", content: { unique_user_id } })
-                ws.send(JSON.stringify({ type: "JOIN", content: { unique_user_id } }))
-            }
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const data: Message = JSON.parse(event.data);
-
-                const handlers = listenersRef.current.get(data.type);
-
-                handlers?.forEach((handler) => {
-                    handler(data);
-                });
-            } catch (error) {
-                console.error("Invalid WebSocket message:", error);
-            }
-        };
-        ws.onclose = () => {
-            setIsSocketReady(false)
-            console.log("🔴 WebSocket disconnected");
-        };
-
-        ws.onerror = (error) => {
-            setIsSocketReady(false)
-            console.error("❌ WebSocket error:", error);
-        };
-
-        return () => {
-            ws.close();
-            setSocket(null)
-        };
-    }, [roomCode]);
-
-    return (
-        <SocketContext.Provider
-            value={{
-                socket,
-                sendMessage: sendMessage,
-                isReady: isSocketReady,
-                subscribe
-            }}
-        >
-            {children}
-        </SocketContext.Provider>
+    typedListeners.add(
+      handler as MessageHandler<MessageType>
     );
+
+    return () => {
+      typedListeners.delete(
+        handler as MessageHandler<MessageType>
+      );
+    };
+  };
+
+
+  useEffect(() => {
+    const uniqueUserId = getSessionStorage<string>("UUID");
+
+    const ws = new WebSocket(
+      `${SOCKET_BASE_URL}/${roomCode}`
+    );
+
+    setSocket(ws);
+
+    ws.onopen = () => {
+      console.log("🟢 WebSocket connected");
+
+      setIsSocketReady(true);
+
+      ws.send(
+        JSON.stringify({
+          type: "TEST",
+          content: {
+            message: "Hello from client",
+          },
+        })
+      );
+
+      if (uniqueUserId) {
+        ws.send(
+          JSON.stringify({
+            type: "JOIN",
+            content: {
+              unique_user_id: uniqueUserId,
+            },
+          })
+        );
+      }
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data: Message = JSON.parse(event.data);
+
+        const handlers = listenersRef.current.get(data.type);
+
+        handlers?.forEach((handler) => {
+          handler(data);
+        });
+      } catch (error) {
+        console.error(
+          "Invalid WebSocket message:",
+          error
+        );
+      }
+    };
+
+    ws.onclose = () => {
+      setIsSocketReady(false);
+      console.log("🔴 WebSocket disconnected");
+    };
+
+    ws.onerror = (error) => {
+      setIsSocketReady(false);
+      console.error("❌ WebSocket error:", error);
+    };
+
+    return () => {
+      ws.close();
+      setSocket(null);
+      setIsSocketReady(false);
+    };
+  }, [roomCode]);
+
+
+  return (
+    <SocketContext.Provider
+      value={{
+        socket,
+        sendMessage,
+        isReady: isSocketReady,
+        subscribe,
+      }}
+    >
+      {children}
+    </SocketContext.Provider>
+  );
 };
 
 export const useSocket = () => {
-    const context = useContext(SocketContext);
+  const context = useContext(SocketContext);
 
-    if (!context) {
-        throw new Error("useSocket must be used within SocketProvider");
-    }
+  if (!context) {
+    throw new Error(
+      "useSocket must be used within SocketProvider"
+    );
+  }
 
-    return context;
+  return context;
 };

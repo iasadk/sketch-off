@@ -57,3 +57,32 @@ export interface Response<T> {
 }
 
 export type validSessionStorageKeys = "ROOM_CODE" | "UUID"
+
+export type DrawMessageType = {
+    type: "DRAW"
+    content: {
+        stokes: Stroke[]
+    },
+}
+
+export type JoinMessageType = {
+    type: "JOIN"
+    content: {
+        unique_user_id: string
+        name: string
+    }
+}
+
+export type PlayersMessageType = {
+    type: "PLAYERS"
+    content: {
+        players: Player[]
+    }
+}
+
+export type TestMessageType = {
+    type: "TEST"
+    content: {
+        message: string
+    }
+}

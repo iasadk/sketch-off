@@ -11,12 +11,18 @@ import RoomPlayers from './RoomPlayers'
 import { SocketProvider, useSocket } from '@/provider/websocket'
 import SocketDevTools from './SocketDevtools'
 import SessionCleanup from '@/app/components/SessionCleanUp'
+import { useGameStore } from '@/store/room'
+import { useShallow } from 'zustand/shallow'
+import StartGame from './canvas/overlays/StartGame'
+import GameNotStarted from './canvas/overlays/GameNotStarted'
 
 type Props = {
     roomData: CreateRoomResponse
 }
 
 const RoomRenderer = ({ roomData }: Props) => {
+    const { isOwner } = useGameStore(useShallow((state) => ({ isOwner: state.is_owner })))
+
     const [playerUniqueId, setPlayerUniqueId] = useState<string | null>(null);
     useEffect(() => {
         const unique_user_id = getSessionStorage<string>("UUID");
@@ -41,7 +47,13 @@ const RoomRenderer = ({ roomData }: Props) => {
         );
     }
 
-
+    const playAreaRenderer = () => {
+        if (isOwner){
+            return <StartGame/>
+        }else{
+            return <GameNotStarted/>
+        }
+    }
     return (
         <>
             <SessionCleanup />
@@ -55,7 +67,8 @@ const RoomRenderer = ({ roomData }: Props) => {
                         <div className="col-span-2">
                             <RoomPlayers />
                         </div>
-                        <div className="col-span-6">
+                        <div className="col-span-6 relative">
+                            {playAreaRenderer()}
                             <Canvas />
                         </div>
                         <div className="col-span-2">
