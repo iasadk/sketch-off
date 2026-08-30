@@ -8,10 +8,9 @@ import { useShallow } from "zustand/shallow";
 type Props = {};
 
 const ChooseWords = (props: Props) => {
-  const { words, artistId,gameState } = useGameStore(useShallow((state) => ({
+  const { words, artistId } = useGameStore(useShallow((state) => ({
     words: state.words,
     artistId: state.artistId,
-    gameState: state.gameState
   })));
   const playerUniqueId: string = getSessionStorage("UUID") ?? ""
   const isArtist = playerUniqueId === artistId
@@ -59,7 +58,7 @@ const ChooseWords = (props: Props) => {
         <p className="mt-6 text-xs font-medium tracking-wide text-gray-400">
           Select one word to start the round
         </p>
-      </div> : <WaitingToChooseWord/>}
+      </div> : <WaitingToChooseWord />}
     </div>
   );
 };

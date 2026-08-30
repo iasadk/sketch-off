@@ -1,5 +1,6 @@
 "use client";
 
+import InviteButton from "@/app/components/InviteButtom";
 import { getSessionStorage } from "@/lib/util";
 import { useSocket } from "@/provider/websocket";
 import { useGameStore } from "@/store/room";
@@ -100,6 +101,7 @@ const RoomHeader = () => {
           </span>
         )}
       </div>
+      <InviteButton key={"Invite Button"}/>
     </header>
   );
 };
