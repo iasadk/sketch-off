@@ -16,7 +16,6 @@ type Props = {
     disableCodeEdit?: boolean
 }
 const JoinRoomForm = ({ onChange, hideBottomLabel = false, room_code, disableCodeEdit = false}: Props) => {    
-    const router = useRouter()
     const {
         register,
         handleSubmit,

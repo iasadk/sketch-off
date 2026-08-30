@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from core.socket_connection_manager import manager, Message
-from app.rooms.services import getRoom, removePlayerFromRoom, updateChooseWord
+from app.rooms.services import getRoom, removePlayerFromRoom, updateChooseWord, checkWord, updateScore
 from datetime import datetime, timezone
 import traceback
 router = APIRouter(prefix='/ws', tags=['websocket'])
@@ -59,6 +59,37 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                 connection_info = manager.get_connection_info(room_code=room_code, websocket=websocket)
                 if roomInfo["game_state"]["status"] == "CHOOSING_WORD" and connection_info["player_unique_id"] == roomInfo["game_state"]["artist_id"]:
                     await updateChooseWord(room_code=room_code, word=data["content"]["word"])
+            elif data["type"] == "CHAT":
+                roomInfo = await getRoom(room_code=room_code)
+                connection_info = manager.get_connection_info(room_code=room_code, websocket=websocket)
+                playerInfo = next((player for player in roomInfo["players"] if player["uuid"] == connection_info["player_unique_id"]), None)
+                if roomInfo["game_state"]["artist_id"] == connection_info["player_unique_id"]: 
+                    return
+                
+                content = {"msg":f"{playerInfo["name"]}: {data["content"]["msg"]}", "color": "BLACK"}
+                if roomInfo["game_state"]["status"] == "ROUND_START":
+                    # Check if the word is matched or not:
+                    isCorrect = await checkWord(room_code=room_code, word=data["content"]["msg"], phase_id=roomInfo["game_state"]["phase_id"])
+                    if isCorrect:
+                        updatedRoomInfo = await updateScore(room_code=room_code, player_unique_id=connection_info["player_unique_id"])
+                        content["msg"] = f"{playerInfo["name"]}: Guessed the word"
+                        content["color"] = "GREEN"
+                        
+                        await manager.broadcast_to_room(
+                            room_code=room_code, 
+                            message=Message(
+                                type="PLAYERS", 
+                                content={"players": updatedRoomInfo["players"] 
+                            }))
+                    else:
+                        content["msg"] = f"{playerInfo["name"]}: {data["content"]["msg"]} (Incorrect Guess)"
+                        content["color"] = "RED"
+                await manager.broadcast_to_room(
+                    room_code=room_code, 
+                    message=Message(
+                        type="CHAT", 
+                        content=content)
+                )
                 
             
     except WebSocketDisconnect as e:

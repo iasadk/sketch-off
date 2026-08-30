@@ -61,7 +61,7 @@ export interface Response<T> {
 
 export type validSessionStorageKeys = "ROOM_CODE" | "UUID"
 export type GAME_STATE = "NOT_STARTED" | "CHOOSING_WORD" | "ROUND_START" | "ROUND_OVER" | "GAME_OVER"
-export type CHAT_COLORS = "GREEN" | "ORANGE" | "RED"
+export type CHAT_COLORS = "GREEN" | "ORANGE" | "RED" | "BLACK"
 
 export type GameStateMessageType = {
     type: "GAME_STATE"
@@ -128,3 +128,10 @@ export type TestMessageType = {
         message: string
     }
 }
+
+
+export const ChatFormValidationSchema = z.object({
+    msg: z.string().min(3, { error: 'Must be of min length 3' }).max(50, { error: 'Must be of max length 50' }),
+})
+
+export type ChatFormType = z.infer<typeof ChatFormValidationSchema>

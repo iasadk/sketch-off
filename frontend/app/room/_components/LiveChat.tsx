@@ -4,7 +4,15 @@ import { useSocket } from "@/provider/websocket";
 import { useGameStore } from "@/store/room";
 import { useEffect } from "react";
 import { useShallow } from "zustand/shallow";
+import ChatInput from "./ChatInput";
+import { CHAT_COLORS } from "@/lib/types";
 
+export const BG_COLOR_MAP: Record<CHAT_COLORS, string> = {
+  GREEN: "#dcfce7",
+  ORANGE: "#ffedd5",
+  RED: "#fee2e2",
+  BLACK: "#ffff",
+};
 const LiveChat = () => {
   const { chats, updateChat } = useGameStore(
     useShallow((state) => ({
@@ -44,13 +52,14 @@ const LiveChat = () => {
         {chats.map((chat, index) => (
           <p
             key={`${chat.msg}-${index}`}
-            style={{ color: chat.color }}
-            className="break-words px-1 py-0.5 text-left"
+            style={{ color: chat.color, backgroundColor: BG_COLOR_MAP[chat.color], }}
+            className="break-after-all px-1 py-0.5 text-left mt-0.5"
           >
             {chat.msg}
           </p>
         ))}
       </div>
+      <ChatInput />
     </div>
   );
 };

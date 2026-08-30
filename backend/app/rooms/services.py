@@ -298,3 +298,30 @@ async def choose_word_timeout(room_code: str, phase_id: str, duration: int):
         room_code=room_code,
         word=choice(game_state["words"])
     )
+
+async def checkWord(room_code: str, word: str, phase_id: str) -> bool:
+    room = await db.rooms.find_one({"code": room_code})
+    if not room:
+        return False
+    game_state = room["game_state"]
+    
+    print(phase_id, word, room_code, game_state)
+    if phase_id == game_state["phase_id"] and game_state["status"] == "ROUND_START" and (game_state["choosed_word"] or "").lower() == word.lower():
+        return True
+    
+    return False
+
+async def updateScore(room_code: str, player_unique_id: str):
+    print("FFFFFFFFFFFFFFFFFFFF", room_code, player_unique_id)
+    return await db.rooms.find_one_and_update(
+        {
+            "code": room_code,
+            "players.uuid": player_unique_id
+        },
+        {
+            "$inc": {
+                "players.$.score": 10
+            }
+        },
+        return_document=ReturnDocument.AFTER
+    )
