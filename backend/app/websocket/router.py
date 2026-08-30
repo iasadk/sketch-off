@@ -17,6 +17,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                 unique_user_id = data["content"]["unique_user_id"]
                 manager.add_connection(websocket=websocket, room_code=room_code, unique_user_id=unique_user_id)
                 roomInfo = await getRoom(room_code=room_code)
+                playerInfo = next((player for player in roomInfo["players"] if player["uuid"] == unique_user_id), None)
                 await manager.broadcast_to_room(
                     room_code=room_code, 
                     message=Message(
@@ -44,7 +45,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                     message=Message(
                         type="CHAT", 
                         content={
-                            "msg": "New Player Joined",
+                            "msg": f"{playerInfo["name"] if playerInfo else "New Player"} Joined",
                             "color": "GREEN"
                     }))
             elif data["type"] == "DRAW":

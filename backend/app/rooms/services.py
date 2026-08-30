@@ -6,6 +6,9 @@ from random import choice
 from datetime import datetime, timezone
 from core.socket_connection_manager import manager, Message
 from pymongo import ReturnDocument
+from uuid import uuid4
+import asyncio
+from random import choice
 async def create_room(room_data: RoomCreateSchema):
     ROOM_CODE = generate_room_code();
 
@@ -171,23 +174,23 @@ async def start_game(payload: StartGameSchema):
     # select random player
     artist = choice(eligible_players)
     prev_round = room["game_state"]["current_round"]
-    
-    updatedRoom = await db.rooms.find_one_and_update({
-        "code": payload.room_code
-    },{
-        "$set": {
-            "game_state.artist_id": artist["uuid"],
-            "game_state.status": "CHOOSING_WORD",
-            "game_state.choosed_word": None,
-            "game_state.choose_word_started_at": datetime.now(timezone.utc).isoformat(),
-            "game_state.choose_word_duration": 15,
-            "game_state.round_started_at": None,
-            "game_state.round_duration": None,
-            "game_state.current_round": prev_round + 1,
-        }
-    },
-    return_document=ReturnDocument.AFTER
-    )
+    words = ["HELLO", "RIVER", "BUN"]
+    phase_id = str(uuid4())
+    updatedRoom = await updateRoom(
+    room_code=payload.room_code,
+    payload={
+        "game_state.artist_id": artist["uuid"],
+        "game_state.status": "CHOOSING_WORD",
+        "game_state.phase_id": phase_id,
+        "game_state.choosed_word": None,
+        "game_state.choose_word_started_at": datetime.now(timezone.utc).isoformat(),
+        "game_state.choose_word_duration": 15,
+        "game_state.round_started_at": None,
+        "game_state.round_duration": None,
+        "game_state.current_round": prev_round + 1,
+        "game_state.words": words,
+    }
+)
     
     # Sending Game State to every participant:
     await manager.broadcast_to_room(
@@ -223,9 +226,19 @@ async def start_game(payload: StartGameSchema):
     await manager.selective_broadcast(room_code=payload.room_code, uuid=artist["uuid"], message=Message(
     type="SELECT_WORD",
     content={
-        "words": ["HELLO", "RIVER", "SUN"]
+        "words": words
     }), 
     selection_type="INCLUDE")
+    
+
+    # For auto select of word
+    asyncio.create_task(
+        choose_word_timeout(
+            room_code=payload.room_code,
+            phase_id=phase_id,
+            duration=15,
+        )
+    )
 
 async def updateRoom(room_code: str, payload: dict):
     return await db.rooms.find_one_and_update(
@@ -264,3 +277,24 @@ async def updateChooseWord(room_code: str, word: str):
             "choose_word_started_at": updated_room["game_state"]["choose_word_started_at"],
             "choosed_word": updated_room["game_state"]["choosed_word"],
         }))
+    
+async def choose_word_timeout(room_code: str, phase_id: str, duration: int):
+    await asyncio.sleep(duration)
+    
+    room = await getRoom(room_code)
+
+    if not room:
+        return
+    
+    game_state = room["game_state"]
+    
+    if game_state["status"] != "CHOOSING_WORD":
+        return
+    
+    if game_state["phase_id"] != phase_id:
+        return
+    
+    await updateChooseWord(
+        room_code=room_code,
+        word=choice(game_state["words"])
+    )

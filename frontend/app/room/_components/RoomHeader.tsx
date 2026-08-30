@@ -1,8 +1,9 @@
 "use client";
 
 import { getSessionStorage } from "@/lib/util";
+import { useSocket } from "@/provider/websocket";
 import { useGameStore } from "@/store/room";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const RoomHeader = () => {
   const gameState = useGameStore((state) => state.gameState);
@@ -13,13 +14,16 @@ const RoomHeader = () => {
   const roundStartedAt = useGameStore((state) => state.round_started_at);
   const roundDuration = useGameStore((state) => state.round_duration);
   const choosedWord = useGameStore((state) => state.choosed_word);
+  const words = useGameStore((state) => state.words);
   const artistId = useGameStore((state) => state.artistId);
-
+  const { sendMessage } = useSocket()
   const [timeLeft, setTimeLeft] = useState(0);
 
   const isChoosingWord = gameState === "CHOOSING_WORD";
   const isRoundActive = gameState === "ROUND_START";
   const isArtist = artistId === (getSessionStorage("UUID") ?? "")
+  const hasAutoSelectedWord = useRef(false);
+
   const startedAt = isChoosingWord
     ? chooseWordStartedAt
     : roundStartedAt;
@@ -45,12 +49,6 @@ const RoomHeader = () => {
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const remaining = Math.max(0, duration - elapsed);
-      // console.log({
-      //   now: Date.now(),
-      //   startTime,
-      //   diffSeconds: (Date.now() - startTime) / 1000,
-      //   duration,
-      // });
       setTimeLeft(remaining);
     };
 
@@ -58,6 +56,8 @@ const RoomHeader = () => {
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [startedAt, duration]);
+
+  console.log("[WORDS LIST HEADEER]: ", words)
   return (
     <header className="relative flex h-14 w-full items-center rounded-sm bg-white px-3 text-black shadow-sm">
 
@@ -75,11 +75,6 @@ const RoomHeader = () => {
         </div>
 
         <div className="text-lg font-bold">
-          {/* {isChoosingWord
-            ? "Choose a word"
-            : isRoundActive
-              ? "Draw!"
-              : "Waiting..."} */}
           Round {currentRound} of {totalRounds}
         </div>
       </div>
@@ -105,15 +100,6 @@ const RoomHeader = () => {
           </span>
         )}
       </div>
-
-      {/* Settings */}
-      <button
-        type="button"
-        aria-label="Game settings"
-        className="ml-auto text-3xl transition-transform duration-200 hover:rotate-45"
-      >
-        ⚙
-      </button>
     </header>
   );
 };

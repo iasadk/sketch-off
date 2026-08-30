@@ -88,6 +88,7 @@ const RoomRenderer = ({ roomData }: Props) => {
             console.log("[CURRENT TIME STATE]: ", { choose_word_duration, choose_word_started_at, round_duration, round_started_at })
         })
         const unsubscribeSelectWord = subscribe("SELECT_WORD", (message) => {
+            console.log("[EVENT]: SELECT WORD", message)
             const { words } = message.content
             updateWordsList(words)
         })
@@ -122,7 +123,7 @@ const RoomRenderer = ({ roomData }: Props) => {
             return <StartGame />
         } else if (gameState === "NOT_STARTED" && !isOwner) {
             return <GameNotStarted />
-        } else if (gameState === "CHOOSING_WORD" && playerUniqueId === artistId) {
+        } else if (gameState === "CHOOSING_WORD") {
             return <ChooseWords />
         }
     }
