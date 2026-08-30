@@ -9,6 +9,7 @@ import {
   PlayersMessageType,
   SelectWordMessageType,
   TestMessageType,
+  WordSelectedMessageType,
 } from "@/lib/types";
 import { getSessionStorage } from "@/lib/util";
 import {
@@ -23,6 +24,7 @@ import {
 type MessageMap = {
   GAME_STATE: GameStateMessageType;
   SELECT_WORD: SelectWordMessageType
+  WORD_SELECTED: WordSelectedMessageType
   CHAT: ChatMessageType;
   DRAW: DrawMessageType;
   JOIN: JoinMessageType;

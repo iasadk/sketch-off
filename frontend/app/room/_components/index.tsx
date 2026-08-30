@@ -22,7 +22,23 @@ type Props = {
 }
 
 const RoomRenderer = ({ roomData }: Props) => {
-    const { isOwner, updateGameState, updateArtist, gameState, artistId, updateWordsList, updateChooseWordStartedAt, updateChooseWordDuration, updateRoundStartedAt, updateRoundDuration } = useGameStore(useShallow((state) => ({
+    const {
+
+        isOwner,
+        updateGameState,
+        updateArtist,
+        gameState,
+        artistId,
+        updateWordsList,
+        updateChooseWordStartedAt,
+        updateChooseWordDuration,
+        updateRoundStartedAt,
+        updateRoundDuration,
+        updateTotalRounds,
+        updateCurrentRound,
+        updateChoosedWord
+
+    } = useGameStore(useShallow((state) => ({
         isOwner: state.is_owner,
         updateGameState: state.updateGameState,
         updateArtist: state.updateArtist,
@@ -33,6 +49,9 @@ const RoomRenderer = ({ roomData }: Props) => {
         updateChooseWordDuration: state.updateChooseWordDuration,
         updateRoundStartedAt: state.updateRoundStartedAt,
         updateRoundDuration: state.updateRoundDuration,
+        updateTotalRounds: state.updateTotalRounds,
+        updateCurrentRound: state.updateCurrentRound,
+        updateChoosedWord: state.updateChoosedWord
     })))
     const { subscribe } = useSocket()
     const [playerUniqueId, setPlayerUniqueId] = useState<string | null>(null);
@@ -46,26 +65,27 @@ const RoomRenderer = ({ roomData }: Props) => {
         const unsubscribeGameState = subscribe("GAME_STATE", (message) => {
             const {
                 game_state,
+                current_round,
+                total_rounds,
                 artist_id,
                 choose_word_duration,
                 choose_word_started_at,
                 round_duration,
-                round_started_at } = message.content
+                round_started_at,
+                choosed_word
+            } = message.content
             updateGameState(game_state);
             updateArtist(artist_id);
             updateChooseWordDuration(choose_word_duration ?? 0);
             updateChooseWordStartedAt(choose_word_started_at ?? null);
             updateRoundDuration(round_duration ?? 0);
             updateRoundStartedAt(round_started_at ?? null);
+            updateCurrentRound(current_round);
+            updateTotalRounds(total_rounds);
+            updateChoosedWord(choosed_word);
             console.log("[CURRENT GAME STATE]: ", game_state)
             console.log("[CURRENT ARTIST STATE]: ", artist_id)
             console.log("[CURRENT TIME STATE]: ", { choose_word_duration, choose_word_started_at, round_duration, round_started_at })
-            // updateGameState(game_state)
-            // updateArtist(artist_id)
-            // choose_word_duration && updateChooseWordDuration(choose_word_duration)
-            // choose_word_started_at && updateChooseWordStartedAt(choose_word_started_at)
-            // round_duration && updateRoundDuration(choose_word_duration)
-            // round_started_at && updateRoundStartedAt(round_started_at)
         })
         const unsubscribeSelectWord = subscribe("SELECT_WORD", (message) => {
             const { words } = message.content

@@ -1,32 +1,25 @@
 "use client";
 
+import { getSessionStorage } from "@/lib/util";
 import { useGameStore } from "@/store/room";
 import { useEffect, useState } from "react";
 
 const RoomHeader = () => {
   const gameState = useGameStore((state) => state.gameState);
-
-  const chooseWordStartedAt = useGameStore(
-    (state) => state.choose_word_started_at
-  );
-  const chooseWordDuration = useGameStore(
-    (state) => state.choose_word_duration
-  );
-
-  const roundStartedAt = useGameStore(
-    (state) => state.round_started_at
-  );
-  const roundDuration = useGameStore(
-    (state) => state.round_duration
-  );
-
+  const totalRounds = useGameStore((state) => state.total_rounds);
+  const currentRound = useGameStore((state) => state.current_round);
+  const chooseWordStartedAt = useGameStore((state) => state.choose_word_started_at);
+  const chooseWordDuration = useGameStore((state) => state.choose_word_duration);
+  const roundStartedAt = useGameStore((state) => state.round_started_at);
+  const roundDuration = useGameStore((state) => state.round_duration);
   const choosedWord = useGameStore((state) => state.choosed_word);
+  const artistId = useGameStore((state) => state.artistId);
 
   const [timeLeft, setTimeLeft] = useState(0);
 
   const isChoosingWord = gameState === "CHOOSING_WORD";
   const isRoundActive = gameState === "ROUND_START";
-
+  const isArtist = artistId === (getSessionStorage("UUID") ?? "")
   const startedAt = isChoosingWord
     ? chooseWordStartedAt
     : roundStartedAt;
@@ -34,9 +27,6 @@ const RoomHeader = () => {
   const duration = isChoosingWord
     ? chooseWordDuration
     : roundDuration;
-  // const startedAt = '2026-08-29T21:47:04.096Z'
-
-  // const duration = 60
 
   const parseIsoTimestamp = (iso: string) => {
     // trim microseconds -> milliseconds: ...880772+00:00 -> ...880+00:00
@@ -44,7 +34,6 @@ const RoomHeader = () => {
     return new Date(fixed).getTime();
   };
 
-  console.log(startedAt ? parseIsoTimestamp(startedAt) : startedAt, duration, "DUR")
   useEffect(() => {
     if (!startedAt || !duration) {
       setTimeLeft(0);
@@ -56,12 +45,12 @@ const RoomHeader = () => {
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const remaining = Math.max(0, duration - elapsed);
-      console.log({
-        now: Date.now(),
-        startTime,
-        diffSeconds: (Date.now() - startTime) / 1000,
-        duration,
-      });
+      // console.log({
+      //   now: Date.now(),
+      //   startTime,
+      //   diffSeconds: (Date.now() - startTime) / 1000,
+      //   duration,
+      // });
       setTimeLeft(remaining);
     };
 
@@ -86,11 +75,12 @@ const RoomHeader = () => {
         </div>
 
         <div className="text-lg font-bold">
-          {isChoosingWord
+          {/* {isChoosingWord
             ? "Choose a word"
             : isRoundActive
               ? "Draw!"
-              : "Waiting..."}
+              : "Waiting..."} */}
+          Round {currentRound} of {totalRounds}
         </div>
       </div>
 
@@ -99,14 +89,14 @@ const RoomHeader = () => {
         <span className="text-xs font-bold tracking-wide">
           {isChoosingWord
             ? "CHOOSE A WORD"
-            : isRoundActive
+            : isArtist ? "DRAW" : isRoundActive
               ? "GUESS THIS"
               : gameState.replaceAll("_", " ")}
         </span>
 
         {isRoundActive && (
           <span className="text-lg font-bold tracking-[0.25em]">
-            {choosedWord
+            {isArtist ? choosedWord : choosedWord
               ? choosedWord
                 .split("")
                 .map(() => "_")

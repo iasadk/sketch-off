@@ -2,6 +2,8 @@ import { CHAT_COLORS, GAME_STATE, Player } from '@/lib/types';
 import { create } from 'zustand';
 type State = {
     gameState: GAME_STATE,
+    current_round: number,
+    total_rounds: number,
     choose_word_started_at: string | null,
     choose_word_duration: number,
     round_started_at: string | null
@@ -26,10 +28,14 @@ type Actions = {
     updateChooseWordDuration: (duration: State["choose_word_duration"]) => void
     updateRoundStartedAt: (startedAt: State["round_started_at"]) => void
     updateRoundDuration: (duration: State["round_duration"]) => void
+    updateCurrentRound: (duration: State["current_round"]) => void
+    updateTotalRounds: (duration: State["total_rounds"]) => void
 }
 
 export const useGameStore = create<State & Actions>()((set) => ({
     gameState: "NOT_STARTED",
+    current_round: 0,
+    total_rounds: 3,
     artistId: null,
     is_owner: false,
     chats: [],
@@ -50,16 +56,11 @@ export const useGameStore = create<State & Actions>()((set) => ({
     updateGameState: (gameState) => set({ gameState }),
     updateWordsList: (words) => set({ words }),
     updateChoosedWord: (choosed_word) => set({ choosed_word }),
-    updateChooseWordStartedAt: (choose_word_started_at) =>
-        set({ choose_word_started_at }),
-
-    updateChooseWordDuration: (choose_word_duration) =>
-        set({ choose_word_duration }),
-
-    updateRoundStartedAt: (round_started_at) =>
-        set({ round_started_at }),
-
-    updateRoundDuration: (round_duration) =>
-        set({ round_duration }),
+    updateChooseWordStartedAt: (choose_word_started_at) => set({ choose_word_started_at }),
+    updateChooseWordDuration: (choose_word_duration) => set({ choose_word_duration }),
+    updateRoundStartedAt: (round_started_at) => set({ round_started_at }),
+    updateRoundDuration: (round_duration) => set({ round_duration }),
+    updateCurrentRound: (current_round) => set({ current_round }),
+    updateTotalRounds: (total_rounds) => set({ total_rounds }),
 
 }))

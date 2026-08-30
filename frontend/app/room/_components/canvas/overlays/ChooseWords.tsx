@@ -1,16 +1,19 @@
 "use client";
 
+import { useSocket } from "@/provider/websocket";
 import { useGameStore } from "@/store/room";
+import { useShallow } from "zustand/shallow";
 
 type Props = {};
 
 const ChooseWords = (props: Props) => {
-  const words = useGameStore((state) => state.words);
+  const { words } = useGameStore(useShallow((state) => ({
+    words: state.words,
+  })));
 
+  const { sendMessage } = useSocket()
   const handleWordSelect = (word: string) => {
-    console.log("Selected word:", word);
-
-    // TODO: send selected word to backend
+    sendMessage({ "type": "WORD_SELECTED", content: { word } })
   };
 
   return (

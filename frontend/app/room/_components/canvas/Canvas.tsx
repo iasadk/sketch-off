@@ -3,13 +3,15 @@ import React, { useEffect, useRef } from 'react'
 import Toolbar from './Toolbar'
 import { Color, Stroke, StrokeWidth, Tool } from '@/lib/types'
 import { useSocket } from '@/provider/websocket'
-import { cn } from '@/lib/util'
+import { cn, getSessionStorage } from '@/lib/util'
 import { useGameStore } from '@/store/room'
+import { useShallow } from 'zustand/shallow'
 
 type Props = {}
 
 const Canvas = (props: Props) => {
-  // const {isOwner} = useGameStore((state) => ({isOwner: state.is_owner}))
+  const { artistId } = useGameStore(useShallow((state) => ({ artistId: state.artistId })))
+  const player_unique_uuid = getSessionStorage("UUID")
   const { sendMessage, subscribe } = useSocket()
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const colorRef = useRef<Color>("#000000")
@@ -22,7 +24,7 @@ const Canvas = (props: Props) => {
     x: 0,
     y: 0
   });
-
+  const isNotArtist = !player_unique_uuid || player_unique_uuid !== artistId
   const setupContext = (ctx: CanvasRenderingContext2D) => {
     ctx.lineWidth = strokeWidthRef.current;
     ctx.lineCap = "round";
@@ -238,13 +240,15 @@ const Canvas = (props: Props) => {
       console.log(`Receiving ${data.type} event with following data:  ${JSON.stringify(data.content)}`)
       redrawCanvas(data.content.stokes)
     })
-  
+
     return unsubscribe
   }, [subscribe])
-  
+
 
   return (
-    <div className={cn('flex flex-col gap-y-2')}>
+    <div className={cn('flex flex-col gap-y-2', {
+      "cursor-not-allowed pointer-events-none": isNotArtist
+    })}>
       <div className='bg-white w-full h-150  text-center font-semibold rounded-sm'>
         <canvas
           ref={canvasRef}
@@ -256,7 +260,9 @@ const Canvas = (props: Props) => {
           onPointerCancel={handlePointerUp}
         />
       </div>
-      <div>
+      <div className={cn({
+        "opacity-80": isNotArtist
+      })}>
         <Toolbar
           onColorChange={(color: Color) => colorRef.current = color}
           onStrokeWidthChange={(width) => strokeWidthRef.current = width}

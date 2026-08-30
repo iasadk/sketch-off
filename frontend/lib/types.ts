@@ -67,11 +67,14 @@ export type GameStateMessageType = {
     type: "GAME_STATE"
     content: {
         game_state: GAME_STATE,
+        current_round: number,
+        total_rounds: number,
         round_duration: number,
         round_started_at: string | null,
         choose_word_duration: number,
         choose_word_started_at: string | null,
-        artist_id: string
+        artist_id: string;
+        choosed_word: string | null
     },
 }
 
@@ -79,6 +82,13 @@ export type SelectWordMessageType = {
     type: "SELECT_WORD"
     content: {
        words: string[]
+    },
+}
+
+export type WordSelectedMessageType = {
+    type: "WORD_SELECTED"
+    content: {
+       word: string
     },
 }
 

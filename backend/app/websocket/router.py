@@ -1,8 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from core.socket_connection_manager import manager, Message
-from app.rooms.services import getRoom, removePlayerFromRoom
+from app.rooms.services import getRoom, removePlayerFromRoom, updateChooseWord
 from datetime import datetime, timezone
-
+import traceback
 router = APIRouter(prefix='/ws', tags=['websocket'])
 
 
@@ -13,7 +13,6 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
     try:
         while True:
             data = await websocket.receive_json()
-            print(data)
             if data["type"] == "JOIN":
                 unique_user_id = data["content"]["unique_user_id"]
                 manager.add_connection(websocket=websocket, room_code=room_code, unique_user_id=unique_user_id)
@@ -24,18 +23,21 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                         type="PLAYERS", 
                         content={"players": roomInfo["players"] 
                     }))
-                print(datetime.now(timezone.utc).isoformat())
                 await manager.broadcast_to_room(
                     room_code=room_code, 
                     message=Message(
                         type="GAME_STATE", 
                         content={
                         "game_state": roomInfo["game_state"]["status"],
+                        "current_round": roomInfo["game_state"]["current_round"],
+                        "total_rounds": roomInfo["game_state"]["total_rounds"],
+                        "artist_id": roomInfo["game_state"]["artist_id"],
                         "round_duration": roomInfo["game_state"]["round_duration"],
                         "round_started_at": roomInfo["game_state"]["round_started_at"],
                         "choose_word_duration": roomInfo["game_state"]["choose_word_duration"],
-                        # "choose_word_started_at": roomInfo["game_state"]["choose_word_started_at"]
-                        "choose_word_started_at":datetime.now(timezone.utc).isoformat()
+                        "choose_word_started_at": roomInfo["game_state"]["choose_word_started_at"],
+                        "choosed_word": roomInfo["game_state"]["choosed_word"],
+                        
                     }))
                 await manager.broadcast_to_room(
                     room_code=room_code, 
@@ -46,10 +48,17 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                             "color": "GREEN"
                     }))
             elif data["type"] == "DRAW":
-                await manager.broadcast_to_room(room_code=room_code, message=Message(type="DRAW", content=data["content"]))
+                roomInfo = await getRoom(room_code=room_code)
+                connection_info = manager.get_connection_info(room_code=room_code, websocket=websocket)
+                # Only sending to other participants and only artist is allowed to propagate DRAW event to other
+                if roomInfo["game_state"]["status"] == "ROUND_START" and connection_info["player_unique_id"] == roomInfo["game_state"]["artist_id"]:
+                    await manager.selective_broadcast(room_code=room_code, message=Message(type="DRAW", content=data["content"]), selection_type="EXCLUDE", uuid=roomInfo["game_state"]["artist_id"])
             elif data["type"] == "WORD_SELECTED":
-                # gamestate, choosed_word, round_started_at, round_duration
-                pass
+                roomInfo = await getRoom(room_code=room_code)
+                connection_info = manager.get_connection_info(room_code=room_code, websocket=websocket)
+                if roomInfo["game_state"]["status"] == "CHOOSING_WORD" and connection_info["player_unique_id"] == roomInfo["game_state"]["artist_id"]:
+                    await updateChooseWord(room_code=room_code, word=data["content"]["word"])
+                
             
     except WebSocketDisconnect as e:
         # disconnecting client:
@@ -62,6 +71,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
     except Exception as e:
         # Optional: Catch any other JSON decoding or unexpected errors
         print(f"Error handling websocket: {e}")
+        traceback.print_exc()
         
 @router.websocket("/health")
 async def websocket_health(websocket: WebSocket):

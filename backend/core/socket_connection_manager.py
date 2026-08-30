@@ -2,6 +2,7 @@ from fastapi import WebSocket
 from  collections import defaultdict
 from pydantic import BaseModel
 from typing import Any, Literal
+import traceback
 class Message(BaseModel):
     type: Literal["DRAW", "JOIN", "PLAYERS", "GAME_STATE", "CHAT" , "SELECT_WORD"]
     content: dict[str, Any]
@@ -32,14 +33,22 @@ class WebsocketConnectionManager:
     def get_connections(self, room_code: str) -> dict[WebSocket, str]:
         return self.rooms.get(room_code, {})
     
-    async def boadcast_to_all(self, message: Message):
+    def get_connection_info(self, room_code: str, websocket: WebSocket) -> dict:
+        player_unique_id = self.rooms.get(room_code, {}).get(websocket)
+        return {
+            "player_unique_id": player_unique_id
+        }
+    
+    async def broadcast_to_all(self, message: Message):
         room_clients = [socket for room in self.rooms.values() for socket in room]
         print(f"Sending message to all {len(room_clients)}")
         for i, connection in enumerate(room_clients):
             try:
-                await connection.send_text(message)
+                await connection.send_text(message.model_dump_json())
             except Exception:
                 print(f"Failed to send message to connection at pos: {i}")
+                traceback.print_exc()
+
     
     async def broadcast_to_room(self, room_code: str, message: Message):
         connections = list(self.rooms.get(room_code, {}).keys())
@@ -49,8 +58,9 @@ class WebsocketConnectionManager:
             try:
                 await connection.send_text(message.model_dump_json())
             except Exception as e:
-                print(e)
                 print(f"Failed to send message to connection at pos: {i} ${message.model_dump_json()}")
+                traceback.print_exc()
+                
                 
     async def selective_broadcast(self, room_code: str, uuid: str, message: Message, selection_type: Literal["INCLUDE","EXCLUDE"]):
         connections = list(self.rooms.get(room_code, {}).keys())
@@ -68,7 +78,7 @@ class WebsocketConnectionManager:
                 if should_send:
                     await connection.send_text(message.model_dump_json())
             except Exception as e:
-                print(e)
                 print(f"Failed to send message to connection at pos: {i} ${message.model_dump_json()}")
+                traceback.print_exc()
                 
 manager = WebsocketConnectionManager()

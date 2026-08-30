@@ -149,8 +149,6 @@ async def start_game(payload: StartGameSchema):
     room = await db.rooms.find_one({"code": payload.room_code})
     if not room:
         raise RoomNotFoundException(room_code=payload.room_code)
-    
-    print(room)
     players = room["players"]
     room_owner = next(
         (player for player in players if player["is_owner"]),
@@ -200,6 +198,7 @@ async def start_game(payload: StartGameSchema):
             "game_state": updatedRoom["game_state"]["status"],
             "artist_id": updatedRoom["game_state"]["artist_id"],
             "round_duration": updatedRoom["game_state"]["round_duration"],
+            "choosed_word": updatedRoom["game_state"]["choosed_word"],
             "round_started_at": (
                 updatedRoom["game_state"]["round_started_at"]
                 if updatedRoom["game_state"]["round_started_at"]
@@ -227,6 +226,41 @@ async def start_game(payload: StartGameSchema):
         "words": ["HELLO", "RIVER", "SUN"]
     }), 
     selection_type="INCLUDE")
+
+async def updateRoom(room_code: str, payload: dict):
+    return await db.rooms.find_one_and_update(
+        {"code": room_code},
+        {"$set": payload},
+        return_document=ReturnDocument.AFTER
+    )
+
+async def updateChooseWord(room_code: str, word: str):
+    room = await db.rooms.find_one({"code": room_code})
+    if not room:
+        raise RoomNotFoundException(room_code=room_code)
+    updated_room = await updateRoom(room_code=room_code, payload={
+        "game_state.round_started_at": datetime.now(timezone.utc).isoformat(),
+        "game_state.round_duration": 120,
+        "game_state.choose_word_started_at": None,
+        "game_state.choose_word_duration": None,
+        "game_state.choosed_word": word,
+        "game_state.status": "ROUND_START",
+        })
     
+    playerInfo = next((player for player in updated_room["players"] if player['uuid'] == updated_room["game_state"]["artist_id"]), None)
     
+    await manager.broadcast_to_room(room_code=room_code, message=Message(type="CHAT", content={"msg": f"Round {room["game_state"]["current_round"]} started", "color": "ORANGE"}))
     
+    await manager.broadcast_to_room(room_code=room_code, message=Message(type="CHAT", content={"msg": f"{playerInfo["name"]} is drawing on canvas. Type to guess", "color": "GREEN"}))
+    
+    await manager.broadcast_to_room(room_code=room_code, message=Message(type="GAME_STATE", content={
+            "game_state": updated_room["game_state"]["status"],
+            "current_round": updated_room["game_state"]["current_round"],
+            "total_rounds": updated_room["game_state"]["total_rounds"],
+            "artist_id": updated_room["game_state"]["artist_id"],
+            "round_duration": updated_room["game_state"]["round_duration"],
+            "round_started_at": updated_room["game_state"]["round_started_at"],
+            "choose_word_duration": updated_room["game_state"]["choose_word_duration"],
+            "choose_word_started_at": updated_room["game_state"]["choose_word_started_at"],
+            "choosed_word": updated_room["game_state"]["choosed_word"],
+        }))
