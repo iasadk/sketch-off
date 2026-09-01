@@ -9,6 +9,9 @@ from pymongo import ReturnDocument
 from uuid import uuid4
 import asyncio
 from random import choice
+from wonderwords import RandomWord
+
+rw = RandomWord()
 CHOOSE_WORD_DURATION = 15
 ROUND_START_DURATION = 30
 ROUND_OVER_DURATION = 10
@@ -22,7 +25,7 @@ async def create_room(room_data: RoomCreateSchema):
         "game_state": {
            "current_round": 0, 
            "artist_id": None,
-           "total_rounds": 3,
+           "total_rounds": 2,
            "round_started_at": None,
            "round_duration": None,
            "choose_word_started_at": None,
@@ -30,7 +33,7 @@ async def create_room(room_data: RoomCreateSchema):
            "choosed_word": None,
            "status": "NOT_STARTED" 
         },
-        "max_players": room_data.max_players,
+        "max_players": 8,
         "players": [{"uuid": room_data.unique_player_id, "name": room_data.player_name, "score":  0, "is_owner": True, "is_guessed": False }]
     }
     # saving to db:
@@ -123,9 +126,6 @@ async def removePlayerFromRoom(room_code: str, player_unique_id: str):
     room = await db.rooms.find_one({"code": room_code})
     if room is None: 
         return
-    if len(room["players"]) == 0:
-        # Delete the room:
-        await deleteRoom(room_code=room_code)
     
     await updateRoomOwner(room_code=room_code)
     return result
@@ -170,7 +170,7 @@ async def start_game(payload: StartGameSchema):
     
     await start_round(room_code=payload.room_code)
 
-async def start_round(room_code: str):
+async def start_round(room_code: str, is_restarting_same_round: bool = False):
     room = await db.rooms.find_one({"code": room_code})
     if not room:
         raise RoomNotFoundException(room_code=room_code)
@@ -181,15 +181,44 @@ async def start_round(room_code: str):
             if player["uuid"] != previous_artist_id
         ]
         
-    if not eligible_players:
-        raise InsufficientPlayers()
+    if not eligible_players or len(eligible_players) < 2:
+        if is_restarting_same_round:
+            await game_over(room_code=room_code)
+            await manager.broadcast_to_room(
+                room_code=room_code,
+                message=Message(
+                    type="GAME_STATE",
+                    content={
+                        "game_state": "GAME_OVER",
+                        "current_round": room["game_state"]["current_round"],
+                        "total_rounds": room["game_state"]["total_rounds"],
+                        "artist_id": None,
+                        "round_duration": 0,
+                        "choosed_word": None,
+                        "round_started_at": None,
+                        "choose_word_duration": 0,
+                        "choose_word_started_at": None,
+                        "round_over_started_at": None,
+                        "round_over_duration": 0,
+                    }
+                )
+            )
+            return
+        else:
+            raise InsufficientPlayers()
         
     if room['game_state']["current_round"] >= room['game_state']["total_rounds"]:
         return
     # select random player
     artist = choice(eligible_players)
     prev_round = room["game_state"]["current_round"]
-    words = ["HELLO", "RIVER", "BUN"]
+    words = rw.random_words(
+        3,
+        word_min_length=3,
+        word_max_length=8,
+        include_parts_of_speech=["nouns"]
+    )
+    words = [word.upper() for word in words]
     phase_id = str(uuid4())
     updatePlayerList = [{**player, "is_guessed": False} for player in players]
     updatedRoom = await updateRoom(
@@ -203,7 +232,7 @@ async def start_round(room_code: str):
         "game_state.choose_word_duration": CHOOSE_WORD_DURATION,
         "game_state.round_started_at": None,
         "game_state.round_duration": None,
-        "game_state.current_round": prev_round + 1,
+        "game_state.current_round": prev_round + 1 if not is_restarting_same_round else prev_round,
         "game_state.words": words,
         "players": updatePlayerList,
     })
@@ -504,3 +533,38 @@ async def game_over(room_code: str):
             "game_state.status": "GAME_OVER"
         }    
     )
+    
+async def get_player_name(room_code: str, player_uuid: str):
+    room = await db.rooms.find_one({"code": room_code})
+    if not room:
+        return None
+    
+    players = room.get("players", [])
+    player = next((player for player in players if player.get("uuid") == player_uuid), None)
+    if player:
+        return player.get("name")
+    return None
+
+async def handle_disconnect(room_code: str, player_uuid: str):
+
+    room = await getRoom(room_code)
+
+    # Remove player first
+    await removePlayerFromRoom(room_code=room_code, player_unique_id=player_uuid)
+
+    # Was this player the current artist?
+    if room["game_state"]["artist_id"] != player_uuid:
+        return
+
+    # Finding another player
+    players = [
+        player for player in room["players"]
+        if player["uuid"] != player_uuid
+    ]
+
+    if not players:
+        # Delete the room:
+        await deleteRoom(room_code=room_code)
+        return
+
+    await start_round(room_code=room_code, is_restarting_same_round=True)

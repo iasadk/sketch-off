@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from core.socket_connection_manager import manager, Message
-from app.rooms.services import getRoom, removePlayerFromRoom, updateChooseWord, checkWord, updateScore, check_all_participants_gussed, round_over
+from app.rooms.services import getRoom, updateChooseWord, checkWord, updateScore, check_all_participants_gussed, round_over,get_player_name, handle_disconnect
 import traceback
 router = APIRouter(prefix='/ws', tags=['websocket'])
 
@@ -96,9 +96,13 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
     except WebSocketDisconnect as e:
         # disconnecting client:
         player_uuid = await manager.remove_connection(room_code=room_code, websocket=websocket)
-        if player_uuid: await removePlayerFromRoom(room_code=room_code, player_unique_id=player_uuid)
+        player_name = await get_player_name(room_code=room_code, player_uuid=player_uuid)
+        if player_uuid:
+            await handle_disconnect(room_code=room_code, player_uuid=player_uuid)
         roomInfo = await getRoom(room_code=room_code)
         await manager.broadcast_to_room(room_code=room_code, message=Message(type="PLAYERS", content={"players": roomInfo["players"] }))
+        if player_name:
+            await manager.broadcast_to_room(room_code=room_code, message=Message(type="CHAT", content={"msg": f"{player_name} Left the room", "color": "RED"}))
         # Code 1000 = Normal disconnect
         print(f"Socket Client disconnected cleanly with code {e.code}")
     except Exception as e:

@@ -1,29 +1,28 @@
 'use client'
 import HomeLayout from '@/app/components/Home'
 import JoinRoomForm from '@/app/components/JoinRoomForm'
+import SessionCleanup from '@/app/components/SessionCleanUp'
 import { CreateRoomResponse } from '@/lib/types'
 import { getSessionStorage } from '@/lib/util'
+import { useSocket } from '@/provider/websocket'
+import { useGameStore } from '@/store/room'
 import { useEffect, useState } from 'react'
+import { useShallow } from 'zustand/shallow'
 import Canvas from './canvas/Canvas'
+import ChooseWords from './canvas/overlays/ChooseWords'
+import GameNotStarted from './canvas/overlays/GameNotStarted'
+import LeaderBoard from './canvas/overlays/LeaderBoard'
+import StartGame from './canvas/overlays/StartGame'
 import LiveChat from './LiveChat'
 import RoomHeader from './RoomHeader'
 import RoomPlayers from './RoomPlayers'
-import { SocketProvider, useSocket } from '@/provider/websocket'
-import SocketDevTools from './SocketDevtools'
-import SessionCleanup from '@/app/components/SessionCleanUp'
-import { useGameStore } from '@/store/room'
-import { useShallow } from 'zustand/shallow'
-import StartGame from './canvas/overlays/StartGame'
-import GameNotStarted from './canvas/overlays/GameNotStarted'
-import ChooseWords from './canvas/overlays/ChooseWords'
-import LeaderBoard from './canvas/overlays/LeaderBoard'
 
 type Props = {
     roomData: CreateRoomResponse
 }
 
 const RoomRenderer = ({ roomData }: Props) => {
-  const resetChats = useGameStore(state => state.resetChats)
+    const resetChats = useGameStore(state => state.resetChats)
     const {
 
         isOwner,
@@ -109,7 +108,7 @@ const RoomRenderer = ({ roomData }: Props) => {
             console.log("[EVENT]: ROUND OVER", message)
             const { prev_choosed_word } = message.content
             updatePrevChoosedWord(prev_choosed_word)
-            
+
         })
         unsubscribers.push(unsubscribeGameState, unsubscribeSelectWord, unsubscribeRoundOver)
 
@@ -152,21 +151,23 @@ const RoomRenderer = ({ roomData }: Props) => {
     return (
         <>
             <SessionCleanup />
-            <div className="w-full flex justify-center items-center h-screen">
-                <div className="w-full max-w-7xl">
-                    <div className="grid grid-cols-10 w-full gap-x-2 gap-y-2">
+            <div className="w-full h-full flex justify-center items-center overflow-hidden flex-col">
+                <div className="w-full max-w-7xl h-full py-4">
+                    <div className="grid grid-cols-10 grid-rows-[auto_1fr] w-full h-full gap-x-2 gap-y-2">
                         <div className="col-span-10">
                             <RoomHeader />
-                            {/* <SocketDevTools showTool={true} /> */}
                         </div>
-                        <div className="col-span-2">
+
+                        <div className="col-span-2 min-h-0 h-full">
                             <RoomPlayers />
                         </div>
-                        <div className="col-span-6 relative">
+
+                        <div className="col-span-6 relative min-h-0 h-full">
                             {playAreaRenderer()}
                             <Canvas />
                         </div>
-                        <div className="col-span-2">
+
+                        <div className="col-span-2 min-h-0 h-full">
                             <LiveChat />
                         </div>
                     </div>

@@ -64,7 +64,7 @@ const Toolbar = ({
       </button>
 
       {/* Fill */}
-      <button
+      {/* <button
         type="button"
         onClick={() => selectTool("fill")}
         title="Fill"
@@ -75,7 +75,7 @@ const Toolbar = ({
         }`}
       >
         <PaintBucket size={24} />
-      </button>
+      </button> */}
 
       {/* Eraser */}
       <button

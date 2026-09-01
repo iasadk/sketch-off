@@ -155,7 +155,7 @@ const Canvas = (props: Props) => {
   };
 
   const handleClear = () => {
-   
+
     clearLocalCanvas();
 
     sendMessage({ type: "CLEAR_CANVAS", content: { msg: "Canvas cleared" } })
@@ -239,6 +239,14 @@ const Canvas = (props: Props) => {
       y: point.y * canvas.clientHeight,
     };
   };
+
+  const handleUndo = () => {
+    if (strokesRef.current.length === 0) return;
+    strokesRef.current.pop();
+    redrawCanvas(strokesRef.current);
+    sendMessage({ type: "DRAW", content: { stokes: strokesRef.current } })
+
+  }
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -284,6 +292,7 @@ const Canvas = (props: Props) => {
         <Toolbar
           onColorChange={(color: Color) => colorRef.current = color}
           onStrokeWidthChange={(width) => strokeWidthRef.current = width}
+          onUndo={() => handleUndo()}
           onClear={handleClear}
           onToolChange={(tool) => handleToolChange(tool)}
         />

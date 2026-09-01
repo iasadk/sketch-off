@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useShallow } from "zustand/shallow";
 import ChatInput from "./ChatInput";
 import { CHAT_COLORS } from "@/lib/types";
+import Logo from "@/app/components/Logo";
 
 export const BG_COLOR_MAP: Record<CHAT_COLORS, string> = {
   GREEN: "#dcfce7",
@@ -34,31 +35,39 @@ const LiveChat = () => {
   }, [subscribe, updateChat]);
 
   return (
-    <div className="flex h-full w-full flex-col justify-end overflow-hidden rounded-sm bg-white p-2">
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden rounded-sm bg-white p-2">
+      <div className="mb-2 border-b-2">
+        <Logo />
+      </div>
+
+      {/* Messages */}
       <div
         className="
-          flex
-          max-h-full
-          flex-col
-          overflow-y-auto
-          text-sm
-          font-semibold
-          scrollbar-thin
-          scrollbar-thumb-gray-300
-          scrollbar-track-transparent
-          hover:scrollbar-thumb-gray-400
-        "
+        min-h-0
+        flex-1
+        overflow-y-auto
+        text-sm
+        font-semibold
+        scrollbar-thin
+        scrollbar-thumb-gray-300
+        scrollbar-track-transparent
+        hover:scrollbar-thumb-gray-400
+      "
       >
         {chats.map((chat, index) => (
           <p
             key={`${chat.msg}-${index}`}
-            style={{ color: chat.color, backgroundColor: BG_COLOR_MAP[chat.color], }}
-            className="break-after-all px-1 py-0.5 text-left mt-0.5"
+            style={{
+              color: chat.color,
+              backgroundColor: BG_COLOR_MAP[chat.color],
+            }}
+            className="mt-0.5 break-all px-1 py-0.5 text-left"
           >
             {chat.msg}
           </p>
         ))}
       </div>
+
       <ChatInput />
     </div>
   );

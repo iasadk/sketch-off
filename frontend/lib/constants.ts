@@ -11,6 +11,9 @@ export const COLORS = [
   "#06B6D4",
   "#A855F7",
   "#84CC16",
+  "#FFFFFF",
+  "#6B7280",
+  "#F43F5E",
 ] as const;
 
 export const STROKE_WIDTHS = [2, 5, 10] as const;

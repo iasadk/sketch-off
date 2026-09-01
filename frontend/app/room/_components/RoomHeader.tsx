@@ -2,9 +2,8 @@
 
 import InviteButton from "@/app/components/InviteButtom";
 import { getSessionStorage } from "@/lib/util";
-import { useSocket } from "@/provider/websocket";
 import { useGameStore } from "@/store/room";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const RoomHeader = () => {
   const gameState = useGameStore((state) => state.gameState);
@@ -23,7 +22,6 @@ const RoomHeader = () => {
 
   const isChoosingWord = gameState === "CHOOSING_WORD";
   const isRoundActive = gameState === "ROUND_START";
-  const isRoundOver = gameState === "ROUND_OVER";
   const isArtist = artistId === (getSessionStorage("UUID") ?? "")
 
   const startedAt = isChoosingWord
@@ -59,7 +57,6 @@ const RoomHeader = () => {
     return () => clearInterval(interval);
   }, [startedAt, duration]);
 
-  console.log("[WORDS LIST HEADEER]: ", words)
   return (
     <header className="relative flex h-14 w-full items-center rounded-sm bg-white px-3 text-black shadow-sm">
 
@@ -84,11 +81,14 @@ const RoomHeader = () => {
       {/* Center */}
       <div className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center">
         <span className="text-xs font-bold tracking-wide">
-          {isChoosingWord
+          {/* {isChoosingWord
             ? "CHOOSE A WORD"
             : isArtist ? "DRAW" : isRoundActive
               ? "GUESS THIS"
-              : gameState.replaceAll("_", " ")}
+              : gameState.replaceAll("_", " ")} */}
+          {isArtist ? "DRAW" : isRoundActive
+            ? "GUESS THIS"
+            : null}
         </span>
 
         {isRoundActive && (
@@ -102,7 +102,7 @@ const RoomHeader = () => {
           </span>
         )}
       </div>
-      <InviteButton key={"Invite Button"}/>
+      <InviteButton key={"Invite Button"} />
     </header>
   );
 };
