@@ -1,8 +1,8 @@
 from app.rooms.schemas import RoomCreateSchema, JoinRoomSchema, StartGameSchema
 from app.rooms.exceptions import RoomNotFoundException, RoomFullError, InsufficientPlayers, NotAllowedToStartGame
-from lib.utils import generate_room_code
+from lib.utils import generate_room_code, get_random_words
 from db.mongodb import db
-from random import choice
+from random import choice, sample
 from datetime import datetime, timezone
 from core.socket_connection_manager import manager, Message
 from pymongo import ReturnDocument
@@ -13,7 +13,7 @@ from wonderwords import RandomWord
 
 rw = RandomWord()
 CHOOSE_WORD_DURATION = 15
-ROUND_START_DURATION = 30
+ROUND_START_DURATION = 90
 ROUND_OVER_DURATION = 10
 
 async def create_room(room_data: RoomCreateSchema):
@@ -25,7 +25,7 @@ async def create_room(room_data: RoomCreateSchema):
         "game_state": {
            "current_round": 0, 
            "artist_id": None,
-           "total_rounds": 2,
+           "total_rounds": 4,
            "round_started_at": None,
            "round_duration": None,
            "choose_word_started_at": None,
@@ -212,13 +212,7 @@ async def start_round(room_code: str, is_restarting_same_round: bool = False):
     # select random player
     artist = choice(eligible_players)
     prev_round = room["game_state"]["current_round"]
-    words = rw.random_words(
-        3,
-        word_min_length=3,
-        word_max_length=8,
-        include_parts_of_speech=["nouns"]
-    )
-    words = [word.upper() for word in words]
+    words = get_random_words(3)
     phase_id = str(uuid4())
     updatePlayerList = [{**player, "is_guessed": False} for player in players]
     updatedRoom = await updateRoom(
