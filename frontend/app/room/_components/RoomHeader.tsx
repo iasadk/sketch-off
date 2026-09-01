@@ -12,26 +12,27 @@ const RoomHeader = () => {
   const currentRound = useGameStore((state) => state.current_round);
   const chooseWordStartedAt = useGameStore((state) => state.choose_word_started_at);
   const chooseWordDuration = useGameStore((state) => state.choose_word_duration);
+  const roundOverStartedAt = useGameStore((state) => state.round_over_started_at);
+  const roundOverDuration = useGameStore((state) => state.round_over_duration);
   const roundStartedAt = useGameStore((state) => state.round_started_at);
   const roundDuration = useGameStore((state) => state.round_duration);
   const choosedWord = useGameStore((state) => state.choosed_word);
   const words = useGameStore((state) => state.words);
   const artistId = useGameStore((state) => state.artistId);
-  const { sendMessage } = useSocket()
   const [timeLeft, setTimeLeft] = useState(0);
 
   const isChoosingWord = gameState === "CHOOSING_WORD";
   const isRoundActive = gameState === "ROUND_START";
+  const isRoundOver = gameState === "ROUND_OVER";
   const isArtist = artistId === (getSessionStorage("UUID") ?? "")
-  const hasAutoSelectedWord = useRef(false);
 
   const startedAt = isChoosingWord
     ? chooseWordStartedAt
-    : roundStartedAt;
+    : isRoundActive ? roundStartedAt : roundOverStartedAt;
 
   const duration = isChoosingWord
     ? chooseWordDuration
-    : roundDuration;
+    : isRoundActive ? roundDuration : roundOverDuration;
 
   const parseIsoTimestamp = (iso: string) => {
     // trim microseconds -> milliseconds: ...880772+00:00 -> ...880+00:00

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Any, Literal
 import traceback
 class Message(BaseModel):
-    type: Literal["DRAW", "JOIN", "PLAYERS", "GAME_STATE", "CHAT" , "SELECT_WORD"]
+    type: Literal["DRAW", "JOIN", "PLAYERS", "GAME_STATE", "CHAT" , "SELECT_WORD", "ROUND_OVER", "CLEAR_CANVAS"]
     content: dict[str, Any]
 class WebsocketConnectionManager:
     def __init__(self):

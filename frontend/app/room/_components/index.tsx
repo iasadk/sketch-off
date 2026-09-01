@@ -16,12 +16,14 @@ import { useShallow } from 'zustand/shallow'
 import StartGame from './canvas/overlays/StartGame'
 import GameNotStarted from './canvas/overlays/GameNotStarted'
 import ChooseWords from './canvas/overlays/ChooseWords'
+import LeaderBoard from './canvas/overlays/LeaderBoard'
 
 type Props = {
     roomData: CreateRoomResponse
 }
 
 const RoomRenderer = ({ roomData }: Props) => {
+  const resetChats = useGameStore(state => state.resetChats)
     const {
 
         isOwner,
@@ -36,7 +38,10 @@ const RoomRenderer = ({ roomData }: Props) => {
         updateRoundDuration,
         updateTotalRounds,
         updateCurrentRound,
-        updateChoosedWord
+        updateChoosedWord,
+        updatePrevChoosedWord,
+        updateRoundOverStartedAt,
+        updateRoundOverDuration
 
     } = useGameStore(useShallow((state) => ({
         isOwner: state.is_owner,
@@ -51,13 +56,17 @@ const RoomRenderer = ({ roomData }: Props) => {
         updateRoundDuration: state.updateRoundDuration,
         updateTotalRounds: state.updateTotalRounds,
         updateCurrentRound: state.updateCurrentRound,
-        updateChoosedWord: state.updateChoosedWord
+        updateChoosedWord: state.updateChoosedWord,
+        updatePrevChoosedWord: state.updatePrevChoosedWord,
+        updateRoundOverStartedAt: state.updateRoundOverStartedAt,
+        updateRoundOverDuration: state.updateRoundOverDuration,
     })))
     const { subscribe } = useSocket()
     const [playerUniqueId, setPlayerUniqueId] = useState<string | null>(null);
     useEffect(() => {
         const unique_user_id = getSessionStorage<string>("UUID");
         setPlayerUniqueId(unique_user_id);
+        resetChats()
     }, []);
 
     useEffect(() => {
@@ -72,7 +81,9 @@ const RoomRenderer = ({ roomData }: Props) => {
                 choose_word_started_at,
                 round_duration,
                 round_started_at,
-                choosed_word
+                choosed_word,
+                round_over_started_at,
+                round_over_duration
             } = message.content
             updateGameState(game_state);
             updateArtist(artist_id);
@@ -83,6 +94,8 @@ const RoomRenderer = ({ roomData }: Props) => {
             updateCurrentRound(current_round);
             updateTotalRounds(total_rounds);
             updateChoosedWord(choosed_word);
+            updateRoundOverStartedAt(round_over_started_at)
+            updateRoundOverDuration(round_over_duration)
             console.log("[CURRENT GAME STATE]: ", game_state)
             console.log("[CURRENT ARTIST STATE]: ", artist_id)
             console.log("[CURRENT TIME STATE]: ", { choose_word_duration, choose_word_started_at, round_duration, round_started_at })
@@ -92,7 +105,13 @@ const RoomRenderer = ({ roomData }: Props) => {
             const { words } = message.content
             updateWordsList(words)
         })
-        unsubscribers.push(unsubscribeGameState, unsubscribeSelectWord)
+        const unsubscribeRoundOver = subscribe("ROUND_OVER", (message) => {
+            console.log("[EVENT]: ROUND OVER", message)
+            const { prev_choosed_word } = message.content
+            updatePrevChoosedWord(prev_choosed_word)
+            
+        })
+        unsubscribers.push(unsubscribeGameState, unsubscribeSelectWord, unsubscribeRoundOver)
 
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
@@ -125,6 +144,8 @@ const RoomRenderer = ({ roomData }: Props) => {
             return <GameNotStarted />
         } else if (gameState === "CHOOSING_WORD") {
             return <ChooseWords />
+        } else if (gameState === "ROUND_OVER" || gameState === "GAME_OVER") {
+            return <LeaderBoard />
         }
     }
 

@@ -3,10 +3,12 @@
 import { SOCKET_BASE_URL } from "@/lib/constants";
 import {
   ChatMessageType,
+  ClearCanvasType,
   DrawMessageType,
   GameStateMessageType,
   JoinMessageType,
   PlayersMessageType,
+  RoundOverMessageType,
   SelectWordMessageType,
   TestMessageType,
   WordSelectedMessageType,
@@ -29,6 +31,8 @@ type MessageMap = {
   DRAW: DrawMessageType;
   JOIN: JoinMessageType;
   PLAYERS: PlayersMessageType;
+  ROUND_OVER: RoundOverMessageType;
+  CLEAR_CANVAS: ClearCanvasType;
   TEST: TestMessageType;
 };
 

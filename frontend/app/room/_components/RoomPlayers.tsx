@@ -27,7 +27,7 @@ const RoomPlayers = ({ }: Props) => {
   return (
     <div className='bg-white h-full w-full  text-center font-semibold rounded-sm'>
       {
-        players.map((player, idx) => <PlayerCard name={player.name} points={player.score} position={idx + 1} key={idx + 1} isOwner={player.is_owner} uuid={player.uuid} isArtist={player.uuid === artistId}/>)
+        players.map((player, idx) => <PlayerCard name={player.name} points={player.score} position={idx + 1} key={idx + 1} isOwner={player.is_owner} uuid={player.uuid} isArtist={player.uuid === artistId} is_guessed={player.is_guessed}/>)
       }
     </div>
   )

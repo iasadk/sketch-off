@@ -1,7 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from core.socket_connection_manager import manager, Message
-from app.rooms.services import getRoom, removePlayerFromRoom, updateChooseWord, checkWord, updateScore
-from datetime import datetime, timezone
+from app.rooms.services import getRoom, removePlayerFromRoom, updateChooseWord, checkWord, updateScore, check_all_participants_gussed, round_over
 import traceback
 router = APIRouter(prefix='/ws', tags=['websocket'])
 
@@ -67,7 +66,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                     return
                 
                 content = {"msg":f"{playerInfo["name"]}: {data["content"]["msg"]}", "color": "BLACK"}
-                if roomInfo["game_state"]["status"] == "ROUND_START":
+                if roomInfo["game_state"]["status"] == "ROUND_START" and not playerInfo["is_guessed"]:
                     # Check if the word is matched or not:
                     isCorrect = await checkWord(room_code=room_code, word=data["content"]["msg"], phase_id=roomInfo["game_state"]["phase_id"])
                     if isCorrect:
@@ -81,6 +80,8 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                                 type="PLAYERS", 
                                 content={"players": updatedRoomInfo["players"] 
                             }))
+                        if await check_all_participants_gussed(room_code=room_code):
+                            await round_over(room_code=room_code)
                     else:
                         content["msg"] = f"{playerInfo["name"]}: {data["content"]["msg"]} (Incorrect Guess)"
                         content["color"] = "RED"
@@ -90,8 +91,8 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                         type="CHAT", 
                         content=content)
                 )
-                
-            
+            elif data["type"] == "CLEAR_CANVAS":
+                await manager.broadcast_to_room(room_code=room_code, message=Message(type="CLEAR_CANVAS", content={"msg": "Canvas cleared"}))
     except WebSocketDisconnect as e:
         # disconnecting client:
         player_uuid = await manager.remove_connection(room_code=room_code, websocket=websocket)

@@ -42,7 +42,8 @@ export type Player = {
     uuid: string,
     score: number,
     name: string;
-    is_owner: boolean
+    is_owner: boolean,
+    is_guessed: boolean
 }
 export interface CreateRoomResponse {
     "_id": string,
@@ -60,7 +61,7 @@ export interface Response<T> {
 }
 
 export type validSessionStorageKeys = "ROOM_CODE" | "UUID"
-export type GAME_STATE = "NOT_STARTED" | "CHOOSING_WORD" | "ROUND_START" | "ROUND_OVER" | "GAME_OVER"
+export type GAME_STATE = "NOT_STARTED" | "CHOOSING_WORD" | "ROUND_START" | "ROUND_OVER" | "GAME_OVER" | "CLEAR_CANVAS"
 export type CHAT_COLORS = "GREEN" | "ORANGE" | "RED" | "BLACK"
 
 export type GameStateMessageType = {
@@ -74,7 +75,9 @@ export type GameStateMessageType = {
         choose_word_duration: number,
         choose_word_started_at: string | null,
         artist_id: string;
-        choosed_word: string | null
+        choosed_word: string | null,
+        round_over_started_at: string | null,
+        round_over_duration: number
     },
 }
 
@@ -97,6 +100,13 @@ export type ChatMessageType = {
     content: {
         msg: string
         color: CHAT_COLORS
+    },
+}
+
+export type ClearCanvasType = {
+    type: "CLEAR_CANVAS"
+    content: {
+        msg: string
     },
 }
 
@@ -126,6 +136,13 @@ export type TestMessageType = {
     type: "TEST"
     content: {
         message: string
+    }
+}
+
+export type RoundOverMessageType = {
+    type: "ROUND_OVER"
+    content: {
+        prev_choosed_word: string,
     }
 }
 

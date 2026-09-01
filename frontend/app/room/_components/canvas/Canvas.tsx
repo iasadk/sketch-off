@@ -140,19 +140,30 @@ const Canvas = (props: Props) => {
     ctx.fill();
   };
 
-  const handleClear = () => {
+  const clearLocalCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    isDrawing.current = false;
+    currentStrokeRef.current = null;
+    strokesRef.current = [];
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // strokesRef.current = [];
-    // currentStrokeRef.current = null
-    // setTimeout(() => {
-    //   redrawCanvas();
-    // }, 1000);
+  };
+
+  const handleClear = () => {
+   
+    clearLocalCanvas();
+
+    sendMessage({ type: "CLEAR_CANVAS", content: { msg: "Canvas cleared" } })
+
+  };
+
+  const handleClearViaSocket = () => {
+    clearLocalCanvas();
   };
 
   const handleToolChange = (tool: Tool) => {
@@ -236,12 +247,19 @@ const Canvas = (props: Props) => {
   }, [])
 
   useEffect(() => {
+    const unsubscribes: (() => void)[] = []
     const unsubscribe = subscribe("DRAW", (data) => {
       console.log(`Receiving ${data.type} event with following data:  ${JSON.stringify(data.content)}`)
       redrawCanvas(data.content.stokes)
     })
 
-    return unsubscribe
+    const unsubscribeClearCanvas = subscribe("CLEAR_CANVAS", (data) => {
+      console.log(`Receiving ${data.type} event with following data:  ${JSON.stringify(data.content)}`)
+      handleClearViaSocket()
+    })
+
+    unsubscribes.push(unsubscribe, unsubscribeClearCanvas)
+    return () => unsubscribes.forEach(unsub => unsub())
   }, [subscribe])
 
 

@@ -1,8 +1,7 @@
-import { getSessionStorage } from '@/lib/util'
+import { getSessionStorage } from '@/lib/util';
 import { parseApiError } from '@/rest-api/error';
 import { startGame } from '@/rest-api/room';
 import axios from 'axios';
-import React from 'react'
 import toast from 'react-hot-toast';
 
 type Props = {}

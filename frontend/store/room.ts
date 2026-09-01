@@ -6,6 +6,8 @@ type State = {
     total_rounds: number,
     choose_word_started_at: string | null,
     choose_word_duration: number,
+    round_over_started_at: string | null,
+    round_over_duration: number,
     round_started_at: string | null
     round_duration: number,
     is_owner: boolean,
@@ -13,7 +15,8 @@ type State = {
     players: Player[]
     chats: { msg: string, color: CHAT_COLORS }[],
     words: string[],
-    choosed_word: string | null
+    choosed_word: string | null,
+    prevChooseWord: string | null
 }
 
 type Actions = {
@@ -24,12 +27,16 @@ type Actions = {
     updateGameState: (gameState: State["gameState"]) => void
     updateWordsList: (words: State["words"]) => void
     updateChoosedWord: (word: State["choosed_word"]) => void
+    updatePrevChoosedWord: (word: State["prevChooseWord"]) => void
     updateChooseWordStartedAt: (startedAt: State["choose_word_started_at"]) => void
     updateChooseWordDuration: (duration: State["choose_word_duration"]) => void
     updateRoundStartedAt: (startedAt: State["round_started_at"]) => void
     updateRoundDuration: (duration: State["round_duration"]) => void
     updateCurrentRound: (duration: State["current_round"]) => void
     updateTotalRounds: (duration: State["total_rounds"]) => void
+    updateRoundOverStartedAt: (startedAt: State["round_over_started_at"]) => void
+    updateRoundOverDuration: (duration: State["round_over_duration"]) => void
+    resetChats: () => void
 }
 
 export const useGameStore = create<State & Actions>()((set) => ({
@@ -41,9 +48,12 @@ export const useGameStore = create<State & Actions>()((set) => ({
     chats: [],
     players: [],
     words: [],
+    prevChooseWord: null,
     choosed_word: null,
     choose_word_started_at: null,
     choose_word_duration: 0,
+    round_over_started_at: null,
+    round_over_duration: 0,
 
     round_started_at: null,
     round_duration: 0,
@@ -56,11 +66,15 @@ export const useGameStore = create<State & Actions>()((set) => ({
     updateGameState: (gameState) => set({ gameState }),
     updateWordsList: (words) => set({ words }),
     updateChoosedWord: (choosed_word) => set({ choosed_word }),
+    updatePrevChoosedWord: (prev_word) => set({ prevChooseWord: prev_word }),
     updateChooseWordStartedAt: (choose_word_started_at) => set({ choose_word_started_at }),
     updateChooseWordDuration: (choose_word_duration) => set({ choose_word_duration }),
     updateRoundStartedAt: (round_started_at) => set({ round_started_at }),
     updateRoundDuration: (round_duration) => set({ round_duration }),
     updateCurrentRound: (current_round) => set({ current_round }),
     updateTotalRounds: (total_rounds) => set({ total_rounds }),
+    updateRoundOverStartedAt: (round_over_started_at) => set({ round_over_started_at }),
+    updateRoundOverDuration: (round_over_duration) => set({ round_over_duration }),
+    resetChats: () => set({ chats: [] }),
 
 }))

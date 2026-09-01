@@ -1,6 +1,6 @@
 'use client'
 import RandomAvatar from "@/app/components/RandomAvatar"
-import { getSessionStorage } from "@/lib/util"
+import { cn, getSessionStorage } from "@/lib/util"
 import { Brush, Crown } from "lucide-react"
 
 type Props = {
@@ -9,7 +9,8 @@ type Props = {
   points: number,
   isOwner: boolean;
   uuid: string;
-  isArtist: boolean
+  isArtist: boolean,
+  is_guessed: boolean
 }
 const PlayerCard = ({
   position,
@@ -18,12 +19,16 @@ const PlayerCard = ({
   isOwner,
   uuid,
   isArtist,
+  is_guessed
 }: Props) => {
   const uniqueUserId = getSessionStorage('UUID')
 
   return (
-    <div className="flex items-center text-black py-2 px-2 border-b border-slate-300">
-
+    <div className={cn("flex items-center text-black py-2 px-2 border-b border-slate-300",
+      {
+        "bg-green-500/30": is_guessed
+      }
+    )}>
       {/* Position */}
       <div className="w-10 shrink-0">
         <p className="text-xs flex items-center gap-x-1">
